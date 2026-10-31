@@ -136,9 +136,11 @@ body.menuMode #fbSetupPanel{text-align:center;}
 .hud .hudCard.selinfo{margin:-3px 0;}
 .hud .hudCard.pick{cursor:pointer;}
 .hud .hudCard.pick:hover{background:rgba(0,180,255,.10);}
-.hud .hudCard.mini{zoom:.5;min-width:120px;}
-#hudFoe.hudTeam{border-left:2px solid #8887;padding-left:10px;flex:1 1 0;min-width:0;}
+.hud .hudCard.mini{min-width:120px;}
+#hudYou.hudTeam,#hudFoe.hudTeam{flex:1 1 100%;min-width:0;flex-wrap:nowrap;gap:6px 12px;}
+#hudFoe.hudTeam{border-top:2px solid #8887;padding-top:6px;}
 #hudYou.hudTeam,#hudFoe.hudTeam{align-self:flex-start;align-items:flex-start;}
+@media (max-width:700px){ #hudYou.hudTeam,#hudFoe.hudTeam{flex-wrap:wrap;} }
 .hud .hudCard.focus{box-shadow:0 0 0 2px #ff5a4d88;}
 .hud .hudCard.dead{opacity:.45;}
 .hudPop{position:fixed;z-index:60;pointer-events:none;min-width:120px;padding:3px 6px;border-radius:7px;background:var(--bg);box-shadow:0 4px 18px #000a,0 0 0 1px #8886;font-size:13px;}
@@ -8817,13 +8819,14 @@ function renderHUD(){
   if(isFull()){      // 👥 (v80) two cards only: the pawn you plan for · the enemy you tapped (bars over every head on the board)
     const own=ownKeys(), a=own.includes(state.activeSide)?state.activeSide:(own[0]||'P'), fk=(state.focusK&&state[state.focusK]&&!isDead(state[state.focusK]))?state.focusK:(foeKeys().find(k=>!isDead(state[k]))||foeKeys()[0]||'E');
     const hb=document.getElementById('hudBox'); if(hb) hb.className='hud';
-    { const hy=document.getElementById('hudYou'), hf=document.getElementById('hudFoe'), inT=state.mode==='team'&&!state.sim&&state.phase!=='teamSetup', ctl=ctlKeys(), big=inT?a:null;      // (v86) a card for every pawn: the one you plan for full size (cyan), every other one half size — hover it to read it full size
-      const card=(k,foe)=>{ const U=state[k], pick=!foe&&ctl.includes(k)&&k!==a&&!lockedOut(U)&&state.phase==='queue'&&!state.anim, mini=k!==big, dd=isDead(U);
+    { const hy=document.getElementById('hudYou'), hf=document.getElementById('hudFoe'), inT=state.mode==='team'&&!state.sim&&state.phase!=='teamSetup', ctl=ctlKeys(), big=inT?a:null;      // (v86) a card for every pawn, your team on top, the enemies on the row below: the one you plan for (cyan) and a 👿 Boss full size, the rest a bit smaller — the bigger the team, the smaller (hover one to read it full size)
+      const vis=ks=>ks.filter(k=>state[k]&&!state[k].ghost), mine=vis(own), theirs=vis(foeKeys());
+      const zoomFor=n=>n<=4?0.9:(n===5?0.72:0.55);      // (3 or 4 a side stay on one row; 5 and 6 shrink to still fit it)
+      const card=(k,foe)=>{ const U=state[k], pick=!foe&&ctl.includes(k)&&k!==a&&!lockedOut(U)&&state.phase==='queue'&&!state.anim, dd=isDead(U), z=(k===big||U.boss)?1:zoomFor((foe?theirs:mine).length), mini=z<1;
         const click=pick?` onclick="selectAlly('${k}')" title="Plan for ${sideName(k)}"`:(foe&&!dd?` onclick="state.focusK='${k}';render()" title="Show ${sideName(k)} on the board"`:'');
-        return `<div class="hudCard${k===big?' selinfo':''}${mini?' mini':''}${pick||(foe&&!dd)?' pick':''}${foe&&k===fk?' focus':''}${dd?' dead':''}" data-k="${k}"${click}><b>${emojiHTML(k)} ${sideName(k)}${foe?'':youTag(k)}</b>${gearIcons(U)}<br>`+bar(k,foe?hideSpF(k,true):false)+'</div>'; };
-      const vis=ks=>ks.filter(k=>state[k]&&!state[k].ghost);
-      hy.className='hudTeam'; hy.innerHTML=vis(own).map(k=>card(k,false)).join('');
-      hf.className='hudTeam foes'; hf.innerHTML=vis(foeKeys()).map(k=>card(k,true)).join('');
+        return `<div class="hudCard${k===big?' selinfo':''}${mini?' mini':''}${pick||(foe&&!dd)?' pick':''}${foe&&k===fk?' focus':''}${dd?' dead':''}" data-k="${k}"${mini?` style="zoom:${z}"`:''}${click}><b>${emojiHTML(k)} ${sideName(k)}${foe?'':youTag(k)}</b>${gearIcons(U)}<br>`+bar(k,foe?hideSpF(k,true):false)+'</div>'; };
+      hy.className='hudTeam'; hy.innerHTML=mine.map(k=>card(k,false)).join('');
+      hf.className='hudTeam foes'; hf.innerHTML=theirs.map(k=>card(k,true)).join('');
       hudPopSync(); }
     for(const id of ['hudF','hudE2']){ const d=document.getElementById(id); if(d) d.innerHTML=''; } }
   document.getElementById('log').innerHTML=(ov?ov.log:((state.over&&state.logFull&&!state.anim)?state.logFull:state.log)).map(l=>`<div>${l}</div>`).join('');
