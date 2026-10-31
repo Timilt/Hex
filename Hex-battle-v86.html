@@ -131,6 +131,11 @@ body.menuMode #fbSetupPanel{text-align:center;}
 .hud.team4{display:grid;grid-template-columns:max-content max-content;justify-content:start;gap:8px 18px;}
 .hud>div:empty{display:none;}
 .hud .selinfo{border-radius:7px;padding:3px 6px;margin:-3px -6px;animation:pulseBox 1.3s ease-in-out infinite;}
+#hudYou.hudTeam{display:flex;flex-wrap:wrap;gap:8px 16px;}
+.hud .hudCard{min-width:120px;padding:3px 6px;margin:-3px 0;border-radius:7px;}
+.hud .hudCard.selinfo{margin:-3px 0;}
+.hud .hudCard.pick{cursor:pointer;}
+.hud .hudCard.pick:hover{background:rgba(0,180,255,.10);}
 @keyframes pulseBox{0%,100%{box-shadow:0 0 0 2px #00b3ff,0 0 4px 1px #00b3ff88}50%{box-shadow:0 0 0 2px #00d4ff,0 0 14px 4px #00b3ffcc}}
 .actbtn.drop{background:rgba(125,78,36,.88);}
 .hud.team4>#hudYou{grid-column:1;grid-row:1}
@@ -147,6 +152,8 @@ body.menuMode #fbSetupPanel{text-align:center;}
 .hud .sub.lbtag{opacity:1;font-weight:700;color:var(--accent);}
 .hud .sub.lbtag.neg{color:#ff5a4d;}
 .hud .sub.lbtag.pos{color:#4fd98a;}
+.kdt{font-weight:800;margin-left:2px;}
+.kdt.die{color:#ff3b30;animation:lbp 0.9s ease-in-out infinite;}
 .hpbar{position:relative;width:132px;height:12px;border-radius:3px;background:#2a0d0d;overflow:hidden;margin:3px 0;box-shadow:0 0 0 1px #0008;}
 .hpwaste{position:absolute;top:0;bottom:0;right:0;background:repeating-linear-gradient(45deg,#555 0 3px,#2b2b2b 3px 6px);opacity:.9;}
 .hpmiss{position:absolute;top:0;bottom:0;left:0;background:#5e1a1a;}
@@ -580,16 +587,14 @@ table.tMx{border-collapse:collapse;font-size:11.5px;}
       <div style="margin-top:6px;">
         <button class="ctrl" onclick="onlineGo(()=>fbSetupStart())" title="The classic duel: you and one friend">⚔️ 1 vs 1</button>
         <button class="ctrl" onclick="onlineGo(()=>fbSetupStart(true))" title="Musical battle with a friend: both are Musicians, only Hum › Recite › Rehearse, the notes clash (the room decides: whoever opens it picks the mode)">🎼 Musical 1 vs 1</button>
-        <button class="ctrl green" onclick="fbtJoin('1v2')" title="Team battle: the first player vs two pawns (a second and third player can replace the Bots)">🤼 1 vs 2</button>
-        <button class="ctrl red" onclick="fbtJoin('2vb')" title="Two players against the Boss">👿 2 vs Boss</button>
-        <button class="ctrl red" onclick="fbtJoin('2v2b')" title="Two players against two Bosses — the second one, in red, carries random gear">👿👿 2 vs 2 Bosses</button>
-        <button class="ctrl green" onclick="fbtJoin('2v2')" title="Two teams of two on the big map">🤼 2 vs 2</button>
+        <button class="ctrl blue" onclick="fbtJoin('full')" title="Team Mode online: any number a side (up to 6). The host adds pawns, picks the room and sets the Bots' gear (👿 Boss too); everyone who types the same code takes a free seat, empty seats are Bots">👥 Team Mode</button>
         <button class="ctrl warn" id="fbResetBtn" onclick="fbResetRoom()">🗑 Reset room</button>
+        <button class="ctrl red" id="fbResetAllBtn" style="display:none" onclick="fbResetAll()" title="🛠 DevTool: wipe EVERY online room (1 vs 1, Musical and Team) in the database">🧨 Reset ALL rooms</button>
       </div>
       <div id="fbRoomRow" style="margin:6px 0"></div>
       <div id="fbSetupError"></div>
       <button class="ctrl gray menuBack" onclick="menuBack()">⬅ Back</button>
-      <div style="font-size:11px;opacity:.65;margin-top:6px;">1 vs 1: first to join becomes Player 1, second Player 2. Team modes: everyone who types the same code and picks the same format takes the next free seat; empty seats are Bots. Test-mode rules are open to anyone with the URL — don't store anything sensitive.</div>
+      <div style="font-size:11px;opacity:.65;margin-top:6px;">1 vs 1: first to join becomes Player 1, second Player 2. Team Mode: everyone who types the same code takes the next free seat (your team first; 🔁 Switch team in the lobby); empty seats are Bots. Test-mode rules are open to anyone with the URL — don't store anything sensitive.</div>
     </div>
     <div id="identityPanel">
       <div id="identityMsg"></div>
@@ -609,15 +614,13 @@ table.tMx{border-collapse:collapse;font-size:11.5px;}
       <div id="customSide"></div>
     </div>
     <div id="teamPanel">
-      <div id="teamMenu"><div><b>🤼 Team Mode</b> — pick a format</div><div style="margin:8px 0"><button class="ctrl green" onclick="teamPick('1v2')">1 vs 2 &nbsp;(you vs two Bots)</button> <button class="ctrl green" onclick="teamPick('2v2')">2 vs 2 &nbsp;(you + Friend vs two Bots)</button> <button class="ctrl red" onclick="teamPick('2vb')">2 vs Boss</button> <button class="ctrl red" onclick="teamPick('2v2b')" title="You + Friend against two Bosses — the second one, in red, carries random gear">2 vs 2 Bosses</button></div><div style="margin:8px 0"><button class="ctrl blue" onclick="teamPick('full')" title="Any number a side (up to 6 for now): add pawns with the + buttons. A 🤖 ally is a Bot, any other pawn you control (switch with Tab).">👥 Full Team Mode</button></div><button class="ctrl gray" onclick="openMenu(['home','single'])">⬅ Back</button></div>
       <div id="teamSetup" style="display:none">
-        <div id="teamHelp"><b>🤼 Team setup</b> — set gear for every pawn. To change a spawn: tap a pawn on the board, then tap an empty cell.</div>
+        <div id="teamHelp"></div>
         <div id="fbtBar" style="font-size:12px;opacity:.85;margin:4px 0"></div>
         <div class="simRow" id="teamRow"></div>
         <button class="ctrl green" id="teamStartBtn" onclick="teamStart()">▶ Start battle</button>
         <button class="ctrl gray" id="fbtSwitchBtn" style="display:none" onclick="fbtSwitch()" title="Move to the other team (takes the first Bot seat there)">🔁 Switch team</button>
-        <button class="ctrl gray" id="teamResetBtn" onclick="teamReset()">↩ Default positions</button>
-        <button class="ctrl gray" id="teamCalcBtn" style="display:none" onclick="simCalc2()">🧮 Calculate (1000 battles)</button>
+        <button class="ctrl gray" id="teamResetBtn" onclick="teamReset()">↩ Default positions</button>        <button class="ctrl gray" id="teamCalcBtn" style="display:none" onclick="simCalc2()">🧮 Calculate (1000 battles)</button>
         <button class="ctrl gray" id="teamBackBtn" onclick="teamBack()">⬅ Back</button>
       </div>
     </div>
@@ -631,7 +634,7 @@ table.tMx{border-collapse:collapse;font-size:11.5px;}
       <button class="ctrl green" onclick="simStart()">▶ Start battle</button>
       <button class="ctrl gray" id="simCalcBtn" onclick="simCalc()">🧮 Calculate (1000 battles)</button>
       <button class="ctrl" onclick="newGame('hotseat')" title="Two humans on one device, using the two loadouts above">🤝 Pass &amp; Play</button>
-      <button class="ctrl" onclick="openSim2()" title="Four AI pawns on the big map: two teams of two">👥 2 vs 2</button>
+      <button class="ctrl" onclick="openSim2()" title="Full Team Mode with every pawn an AI: any number a side (the Full Team setup)">👥 Team</button>
       <button class="ctrl gold" style="display:none" onclick="tourOpen()" title="Every chosen class / gear combination fights every other one — leaderboards and statistics">🏆 Tournament</button>
       <button class="ctrl" style="display:none" onclick="pianoOpen()" title="The rhythm mini game of the coming Musician instruments: endless random notes">🎹 Piano Test</button>
       <button class="ctrl gray menuBack" onclick="menuBack()">⬅ Back</button>
@@ -642,7 +645,7 @@ table.tMx{border-collapse:collapse;font-size:11.5px;}
     <div id="simRunPanel"></div>
     <div class="gameRow" id="gameRow">
 
-      <button class="ctrl warn" id="newGameBtn" onclick="newGame(lastMode)">🔄 New Game</button>
+      <button class="ctrl warn" id="newGameBtn" onclick="onNewGameBtn()">🔄 New Game</button>
       <button class="ctrl gray" id="mapBtn" onclick="roomPopToggle()" title="Pick the room (map) — starts a new game on it">🗺️ Load Room</button>
       <button class="ctrl gray" id="custBtn" onclick="custToggle()" title="Open / close the Customize window under these buttons">🧑 Customize</button>
       <button class="ctrl warn" id="exitBtn" style="display:none" onclick="onExit()" title="Leave the room — your seat becomes a Bot for the others">🚪 Exit</button>
@@ -658,8 +661,8 @@ table.tMx{border-collapse:collapse;font-size:11.5px;}
     <div id="log"></div>
     <div id="overPanel">
       <div id="overMsg"></div>
-      <button class="ctrl" onclick="newGame(lastMode)">New Game</button>
-      <button class="ctrl gray" onclick="openCustom()">🧑 Customize</button>
+      <button class="ctrl" id="overNewBtn" onclick="onNewGameBtn()">New Game</button>
+      <button class="ctrl gray" id="overCustBtn" onclick="openCustom()">🧑 Customize</button>
       <button class="ctrl brown" onclick="goMenu()">🏠 Menu</button>
     </div>
     <div id="tip">Tip: click your own pawn to pick Move. Wait (+1 SP) → Rest (+2) or Heal ½ → Nap (+3) or Heal (+1 HP, costs max HP); an unfinished turn auto-fills Wait · Rest · Nap. Repeat Defend/Dodge for cheaper, bigger versions (Defend ×2/×3, chained Dodges). Defend → Dash (shield-dodge that can ram) or Defend → Counter-Defend (Sword+Shield: the shield cells redirect, your own cell counters ×2); Dodge → Counter (yellow cells catch a blow, the red redirection cell sends it back ×2 and staggers; a Counter right after a Dodge/Counter also traps blows early, and counters can be bounced back and forth). 🌋 Berserk: Wait / Rest / Nap / Heal are one Enrage button. 🧙 Mage: 🌌 Spellcraft opens the spell book (pick a Fundamental, tap the recipe box, cast the spell); Undo takes a crafting step back.</div>
@@ -709,8 +712,8 @@ const MAXHP=6, BOT_HP=8;
 const ARMOR={
   none:  {name:'No armor',  icon:'❌',ap:0,max:2, pass:1, mv:-1,dd:-1,reg:0,dm:1.5},
   light: {name:'Light',     icon:'👕',ap:1,max:1, pass:0, mv:0, dd:-1,reg:0.125,dm:1.25},
-  robe:  {name:'Martial Arts Robe',icon:'🥋',ap:1,max:1,pass:0,mv:0,dd:-1,reg:0.0625,dm:1.25},      // 🥋 (v85) a light armor that lets half of a blow through, and chains attacks (−1 SP per attack in a row, up to −2)
-  medium:{name:'Medium',    icon:'👚',ap:2,max:0, pass:0, mv:0, dd:0, reg:0.25,dm:1},
+  robe:  {name:'Martial Arts Robe',icon:'🥋',ap:0.5,max:1,pass:0,mv:0,dd:-1,reg:0.0625,dm:1.25},      // 🥋 (v85) a light armor that lets half of a blow through, and chains attacks (−1 SP per attack in a row, up to −2)
+  medium:{name:'Medium',    icon:'🧥',ap:2,max:0, pass:0, mv:0, dd:0, reg:0.25,dm:1},
   heavy: {name:'Heavy',     icon:'🥼',ap:3,max:-1,pass:0, mv:0, dd:1, reg:0.375,dm:0.75},
   jugg:  {name:'Juggernaut',icon:'🦺',ap:4,max:-2,pass:-1,mv:1, dd:1, reg:0.5,dm:0.5},
   cloak: {name:'Mage Cloak',icon:'👘',ap:1,max:-1,pass:0, mv:0, dd:0, reg:0.125,dm:1,mp:1}};      // 🧙 the Mage's own armor (not a light armor): never wears down to another class, +1 MP per turn
@@ -1174,7 +1177,8 @@ const MP_MAX=4, MP_START=2;
 const mpMax=U=>isHarp(U)?HARP_MPMAX:MP_MAX;
 const mpOf=U=>(U&&U.mp)||0;
 const mpGain=U=>isMage(U)?((ARMOR[gearOf(U).armor]||{}).mp||0):0;
-function turnMana(U){ if(U&&U.ipPend){ U.ip=Math.min(IP_MAX,ipOf(U)+U.ipPend); U.ipPend=0; } if(U) U.ipZeroPending=false;      // 🎼 last turn's notes arrive if(isMage(U)&&!U.kd&&!isDead(U)&&!((U.frz||0)>0)) U.mp=Math.min(mpMax(U),mpOf(U)+mpGain(U));      // 👘 +1 MP at the start of every turn
+function turnMana(U){ if(U&&U.ipPend){ U.ip=Math.min(IP_MAX,ipOf(U)+U.ipPend); U.ipPend=0; } if(U) U.ipZeroPending=false;      // 🎼 last turn's notes arrive
+  if(isMage(U)&&!U.kd&&!isDead(U)&&!((U.frz||0)>0)) U.mp=Math.min(mpMax(U),mpOf(U)+mpGain(U));      // 👘 +1 MP at the start of every turn
   if(U.craft){ const rec=U.craft.rec||[];      // 🌌 a recipe whose Spellcrafting was lost falls back to what really got prepared (or is gone); the rest of the book carries over
     if(rec.length>=2&&U.prep!==recipeSpell(rec)) U.craft=(rec.length===3&&U.prep===recipeSpell(rec.slice(0,2)))?{open:true,rec:rec.slice(0,2),spell:null,at:0}:null;
     else U.craft.at=0; }
@@ -1449,7 +1453,7 @@ const stealthOf=(R,info)=>((info&&info.pre&&info.pre[R])?info.pre[R].stealth:(st
 function faceShift(S,info){ return oppKeys(S).some(R=>seesBack(state[R])&&stealthOf(R,info)); }      // (an archer needs nobody's back: only Knife Rogues see the tinted edges)      // a stealthed Rogue's window is wider: colours shift one step
 // whose hexagon gets the tinted edges: the pawns facing a Rogue that the person at the screen plays — and, while an enemy Rogue hides in Stealth, the pawns of the person's own side
 function faceEdgeSides(anim,info){
-  if(!state||!state.P||!state.E||!['ai','hotseat','fb','replay','team'].includes(state.mode)||state.phase==='teamSetup'||state.phase==='teamMenu') return [];
+  if(!state||!state.P||!state.E||!['ai','hotseat','fb','replay','team'].includes(state.mode)||state.phase==='teamSetup') return [];
   if(!anim&&(state.over||(state.phase!=='queue'&&state.phase!=='waiting'))) return [];
   let mine;
   if(state.mode==='hotseat') mine=anim?['P','E']:[state.activeSide];
@@ -1726,7 +1730,9 @@ function shieldAiMul(U, prevType, type, sp){
   if(type==='move'&&sp<=2) m*=0.50;                        // a Move isn't worth it when SP is tight
   return m;
 }
-function cleanGear(g){ const c=cleanGear0(g); if(c.cls!=='mage') c.boots=(g&&BOOTS.includes(g.boots))?g.boots:'leather'; if(g&&g.pboss&&c.cls==='knight'&&bossClsOn()) c.pboss=true; return c; }      // (👿 v55: the Boss class = a Knight loadout with the pboss flag, while it is unlocked)      // 👞 every class wears boots (Leather Boots by default)
+function cleanGear(g){ const c=cleanGear0(g); if(c.cls!=='mage') c.boots=(g&&BOOTS.includes(g.boots))?g.boots:'leather'; if(g&&g.pboss&&c.cls==='knight'&&bossGearOk()) c.pboss=true; return c; }
+let BOSS_OK=0;      // 👿 (v86) the Boss class is a gear pick for Full Team pawns even while it is locked elsewhere
+function bossGearOk(){ if(bossClsOn()||BOSS_OK>0) return true; try{ return !!(state&&(state.mode==='team'||state.mode==='replay')&&state.kind==='full'); }catch(e){ return false; } }      // (👿 v55: the Boss class = a Knight loadout with the pboss flag, while it is unlocked)      // 👞 every class wears boots (Leather Boots by default)
 function cleanGear0(g){
   g=g||{}; const armor=(ARMOR[g.armor]&&g.armor!=='cloak')?g.armor:'medium';
   if(g.cls==='musician') return {cls:'musician',main:MUS_MAIN.includes(g.main)?g.main:'lute',off:null,armor:armor==='robe'?'medium':armor};      // (🥋 not for Musicians)      // 👩‍🎤 an instrument in both hands
@@ -1815,7 +1821,7 @@ CELLS.forEach(start=>{const d={};d[start]=0;let q=[start];while(q.length){const 
 const BASE_POS=JSON.parse(JSON.stringify(POS)), BASE_RING=JSON.parse(JSON.stringify(RING));
 const BIG_ADJ={AD:['A','D','DG'],DG:['D','G','AD','GJ'],GJ:['G','J','DG'],CF:['C','F','IF'],IF:['I','F','CF','IL'],IL:['I','L','IF']};      // each new cell touches only its two namesakes and its chain neighbours
 const BIG_NEW={AD:[42,102],DG:[42,165],GJ:[42,227],IL:[258,227],IF:[258,165],CF:[258,102]};      // 2v2: one more layer of cells around the board
-let MAPBIG=false, MAPKEY='small', MAP_ROOM=null, MAP_VER=0, MAP_YSUM=330, VB={x:0,y:0,w:300,h:330}, NO_ROOM=false;      // 🗺️ (v58) the map laid out now: the old / big built-in one or a Room
+let MAPBIG=false, MAPKEY='small', MAP_ROOM=null, MAP_VER=0, MAP_YSUM=330, VB={x:0,y:0,w:300,h:330};      // 🗺️ (v58) the map laid out now: the old / big built-in one or a Room
 const HEX_DIRS=[[1,0],[1,-1],[0,-1],[-1,0],[-1,1],[0,1]];      // axial neighbours of a flat-top hex
 function roomPx(q,r){ return [Math.round(150+54*q),Math.round(165+62.5*(r+q/2))]; }      // (the same grid as the built-in maps: H = 0,0)
 function setRoomMap(R){
@@ -2285,13 +2291,13 @@ function musicWanted(){
   if(!state||state.mode==='replay') return null;
   { const me=(state.mode==='fb'&&state.mySide)?state.mySide:(state.fbt?fbtPrimary():'P'), U=state[me]; let pb=false; try{ pb=bossClsOn()&&!!getSavedGear().pboss; }catch(e){}      // 👿 (v55) playing the Boss class: the Boss themes everywhere — the second one once you are in the Second Phase
     if(pb||(U&&U.pboss)){ const info=state.anim&&state.anim.info, p2=!!(U&&U.pboss&&U.phase2)&&!(info&&info.phase2Start&&info.phase2Start[me]&&(state.animT||0)<info.hit); return p2?'boss2':'boss1'; } }
-  const bossK=sideKeys(false).filter(k=>state[k]&&state[k].boss);      // (2 vs 2 Bosses: either Boss)
-  if((state.mode==='ai'||state.mode==='team')&&bossK.length&&state.phase!=='teamMenu'&&!(state.over&&!state.anim)){      // (v60: from the team setup / online lobby on)      // Boss duel: its own two tracks, they keep playing during resolution
+  const bossK=foeKeys().filter(k=>state[k]&&state[k].boss);      // (2 vs 2 Bosses: either Boss)
+  if((state.mode==='ai'||state.mode==='team')&&bossK.length&&!(state.over&&!state.anim)){      // (v60: from the team setup / online lobby on)      // Boss duel: its own two tracks, they keep playing during resolution
     const info=state.anim&&state.anim.info;
     const p2=bossK.some(k=>state[k].phase2&&!(info&&info.phase2Start&&info.phase2Start[k]&&(state.animT||0)<info.hit));   // switch exactly when the phase-change blow lands
     return p2?'boss2':'boss1';
   }
-  if(state.mode==='team'&&!state.sim&&state.phase!=='teamMenu'&&state.phase!=='teamSetup'&&!(state.over&&!state.anim)) return 'team';      // Team Mode encounters
+  if(state.mode==='team'&&!state.sim&&state.phase!=='teamSetup'&&!(state.over&&!state.anim)) return 'team';      // Team Mode encounters
   return 'menu';       // menu theme everywhere except the Boss duel (it is only turned down, not stopped, during resolution)
 }
 // Seamless looping: every track has two <audio> elements; shortly before one ends, the other starts from 0
@@ -2848,7 +2854,8 @@ function actionCost(type){ return costQ(cur(),cur().queue.map(e=>e.type),type); 
 function defendLevel(){ if(isUnarmed(cur())) return 1; if(isPal(cur())) return 3; let n=0; const q=cur().queue; for(let i=q.length-1;i>=0&&(q[i].type==='defend'||q[i].type==='cdefend'||q[i].type==='dhook');i--) n++; return Math.min(knifeKit(cur())==='kshield'?2:3,n+1); }
 // The "Wait" slot changes with what you queued before it:
 //   Wait → [Rest | Heal½] → [Nap | Heal]   (Heal is replaced by Last Breath when max HP gets too low)
-function waitOptions(){ const U=cur(), mu=isMus(U)?U:null; if(state.musical&&mu) return [waitOptionsFor(U.queue,U.maxHp,false,false,mu)[0],null]; if(state.mode==='team'&&carryAt(U,U.queue.length)){ const M=mateOf(U); return waitOptionsFor(U.queue,M?M.maxHp:U.maxHp,true,isBers(U),mu); } return waitOptionsFor(U.queue,U.maxHp,true,isBers(U),mu); }      // (🎼 no healing in a Musical battle)
+function waitOptions(){ const U=cur(), mu=isMus(U)?U:null; if(state.musical&&mu) return [waitOptionsFor(U.queue,U.maxHp,false,false,mu)[0],null]; if(state.mode==='team'&&carryAt(U,U.queue.length)){ const M=mateOf(U); return waitOptionsFor(U.queue,99,!!M&&M.hp<M.maxHp,isBers(U),mu); }      // (v86) the passenger's heal costs no max HP: never a Last Breath
+ return waitOptionsFor(U.queue,U.maxHp,true,isBers(U),mu); }      // (🎼 no healing in a Musical battle)
 function waitOptionsFor(q,mh,canHeal=true,bers=false,mus=null){
   if(mus){      // 👩‍🎤 Hum › Recite › Rehearse (the same chain as Wait › Rest › Nap); with the IP bar full (counting the queue) the plain Wait / Rest / Nap
     const lv=t=>({wait:1,hum:1,rest:2,recite:2,heal1:2,nap:3,rehearse:3})[t]||0, n=q.length, T=(ipOf(mus)+ipQueued({queue:q})>=IP_MAX)?WAIT_T:HUM_T;
@@ -2883,11 +2890,12 @@ function selMode(){
 function shouldMirror(){
   if(state.mode==='replay') return !!state.mirror;
   if(state.mode==='fb') return state.mySide==='E';
+  if(state.mode==='team'&&state.fbt) return !myTeamA();      // (v86) online Full Team: the second team sees the board from its own side
   if(state.mode==='hotseat') return state.phase==='queue'&&state.activeSide==='E';
   return false;
 }
 function dcoord(cell){ if(MAP_ROOM&&shouldMirror()){ const p=POS[cell]; return p?[p[0],MAP_YSUM-p[1]]:p; } return POS[shouldMirror()?MIRROR_PAIR[cell]:cell]; }      // (🗺️ a Room: flipped top ↔ bottom by its own centre line)
-function viewerSide(){ if(state.mode==='replay') return state.viewer||'P'; return (state.mode==='fb'&&state.mySide)?state.mySide:'P'; }
+function viewerSide(){ if(state.mode==='replay') return state.viewer||'P'; if(state.fbt) return fbtPrimary(); return (state.mode==='fb'&&state.mySide)?state.mySide:'P'; }
 function ownHighlightSide(){
   if(state.mode==='team') return state.sim&&state.phase!=='teamSetup'?null:(state.phase==='teamSetup'?(state.teamSel||null):(state.activeSide||'P'));
   if(state.mode==='fb') return state.mySide||null;
@@ -2936,7 +2944,7 @@ function initArmor(U){ const a=gearOf(U).armor||'medium', bp=bootAp(U); U.bap0=b
 function freshSide(pos){ return {pos,rch:0,cta:0,ap:0,maxAp:0,ap0:0,calm:0,tier:'medium',hp:MAXHP,maxHp:MAXHP,baseHp:MAXHP,cd:{},raise:0,split:0,hooked:0,tcd:{heal1:0,heal2:0,napmax:0,raise:0},sp:4,queue:[],skip:false,name:null,emoji:null,id:null,heals:0,lb:0,gear:{...DEFAULT_GEAR}}; }
 let OLDMAP=false; try{ OLDMAP=localStorage.getItem('hexduel_oldmap')==='1'; }catch(e){}      // 🗺️ the bigger map is the default; the old small one can be switched on (not online: both players must share one map)
 function blankState(mode,big){      // 🗺️ (v58) on the chosen Room (offline modes): its cells, spawns and starting areas
-  const R=(mode!=='fb'&&!NO_ROOM)?(ROOM_OVR||selRoom()):null, st=blankState0(mode,big); if(!R) return st;
+  const R=mode!=='fb'?(ROOM_OVR||selRoom()):null, st=blankState0(mode,big); if(!R) return st;
   setMap(R); st.room=R; const sp=roomSpawns(R,['P','E']); st.P.pos=sp.P; st.E.pos=sp.E; st.areas=roomAreas(R); st.areaSeq=500; return st; }
 function blankState0(mode,big){
   if(big===undefined) big=(mode==='fb')?true:!OLDMAP;
@@ -3006,8 +3014,8 @@ function simStart(){
 }
 function simRematch(){ if(state.sim){ sim2Start(true); return; } simStart(); }
 function simStop(){ if(state.sim) openSim2(); else openSim(); }
-function teamBack(){ if(state&&state.fbt){ fbtExit(false); return; } if(state&&state.sim) openSim(); else openTeam(); }
-// ---- 🧪 2v2 simulation: four AI pawns on the big map (setup = the Team setup screen) ----
+function teamBack(){ if(state&&state.fbt){ fbtExit(false); return; } if(state&&state.sim) openSim(); else openMenu((MENU.ret&&MENU.ret.length)?MENU.ret:['home','single']); }
+// ---- 🧪 Team simulation: Full Team Mode with every pawn an AI (setup = the Team setup screen) ----
 function toggleMap(){
   if(state&&(state.mode==='replay'||state.fbt||state.mode==='fb')) return;
   OLDMAP=!OLDMAP; try{ localStorage.setItem('hexduel_oldmap',OLDMAP?'1':'0'); }catch(e){}
@@ -3018,18 +3026,18 @@ function openSim2(){
   if(state&&state.menu) MENU.ret=MENU.stack.slice();
   leaveOnline(); if(fbPollId){ clearInterval(fbPollId); fbPollId=null; }
   SIM.run++; SIM.paused=false; SIM.score={P:0,E:0,D:0}; lastMode='sim'; HIST=[];
-  teamBuild('2v2'); state.sim=true; state.phase='teamSetup'; simClearResult(); render();
+  fullBuild(); state.sim=true; state.phase='teamSetup'; simClearResult(); render();
 }
 function sim2Start(rebuild){
-  saveTeam(); SIM.run++; const my=SIM.run; SIM.paused=false; HIST=[];
-  if(rebuild){ const pos={}; for(const k of tkeys()) pos[k]=state[k].pos; teamBuild('2v2'); for(const k of tkeys()) state[k].pos=pos[k]; }
-  state.sim=true; state.teamSel=null; state.phase='simRun'; state.activeSide='P'; state.pending=null; state.over=false; state.log=['🧪 2v2 simulation begins.'];
+  saveFull(); SIM.run++; const my=SIM.run; SIM.paused=false; HIST=[];
+  if(rebuild){ const pos={}; for(const k of tkeys()) pos[k]=state[k].pos; fullBuild(); for(const k of tkeys()) state[k].pos=pos[k]; }
+  state.sim=true; state.teamSel=null; state.phase='simRun'; state.activeSide='P'; state.pending=null; state.over=false; state.log=['🧪 Team simulation begins: '+sideKeys(true).length+' vs '+sideKeys(false).length+'.'];
   render(); sim2Loop(my);
 }
 async function sim2Loop(my){
   while(SIM.run===my&&state.sim&&!state.over){
     if(state.turn>SIM_MAX_TURNS){ state.over=true; state.simDraw=true; state.phase='over'; break; }
-    teamPlan(['P','F','E','E2']);
+    teamPlan(tkeys());
     state.phase='resolving'; render();
     await sleep(150/SIM.speed);
     if(SIM.run!==my) return;
@@ -3053,11 +3061,11 @@ async function simCalc2(N){
   const tally={P:0,E:0,D:0}; let em;
   try{
     for(let i=0;i<N;i++){
-      teamBuild('2v2'); state.sim=true; for(const k of tkeys()) state[k].pos=pos0[k];
+      fullBuild(); state.sim=true; for(const k of tkeys()) state[k].pos=pos0[k];
       if(i===0) em=tkeys().map(k=>sideEmoji(k)).join('');
       state.phase='simRun';
       while(!state.over&&state.turn<=SIM_MAX_TURNS){
-        teamPlan(['P','F','E','E2']);
+        teamPlan(tkeys());
         for(let r=0;r<3;r++){ teamRound(r); if(state.over) break; }
         if(state.over) break;
         teamNextTurn(true);
@@ -3065,11 +3073,11 @@ async function simCalc2(N){
       if(!state.over||state.winner==='draw'||!state.winner) tally.D++; else if(state.winner==='ally') tally.P++; else tally.E++;
       if(i%5===4){ if(res) res.textContent='Calculating… '+(i+1)+'/'+N; await sleep(0); }
     }
-    teamBuild('2v2'); state.sim=true; for(const k of tkeys()) state[k].pos=pos0[k]; state.phase='teamSetup'; render();
+    fullBuild(); state.sim=true; for(const k of tkeys()) state[k].pos=pos0[k]; state.phase='teamSetup'; render();
     const pa=Math.round(tally.P/N*100), pb=Math.round(tally.E/N*100);
-    if(res) res.innerHTML=`<div style="font-weight:700">🧮 ${N} battles (2 vs 2)</div>`+
-      `<div>${sideEmoji('P')}${sideEmoji('F')} Team 1 — <b>${tally.P} (${pa}%)</b></div>`+
-      `<div>${sideEmoji('E')}${sideEmoji('E2')} Team 2 — <b>${tally.E} (${pb}%)</b></div>`+
+    if(res) res.innerHTML=`<div style="font-weight:700">🧮 ${N} battles (${sideKeys(true).length} vs ${sideKeys(false).length})</div>`+
+      `<div>${sideKeys(true).map(k=>sideEmoji(k)).join('')} Team 1 — <b>${tally.P} (${pa}%)</b></div>`+
+      `<div>${sideKeys(false).map(k=>sideEmoji(k)).join('')} Team 2 — <b>${tally.E} (${pb}%)</b></div>`+
       `<div>Draws / stalls — <b>${tally.D} (${100-pa-pb}%)</b></div>`;
   } finally { simCalcBusy=false; if(btn) btn.disabled=false; }
 }
@@ -4328,6 +4336,24 @@ function fbJoinNow(){
   if(custTaken().includes(emoji)){ state.customNote='Your opponent already uses that pawn — pick another.'; renderCustom(); return; }
   fbClaim(((me.name||'').trim().slice(0,8))||defName(state.claimSide),emoji);
 }
+// 🔁 (v86) online: Rematch instead of New Game — only once the fight is over
+function onNewGameBtn(){ if(state&&state.fbt){ fbtRematch(); return; } if(state&&state.mode==='fb'&&state.mySide){ fbRematch(); return; } newGame(lastMode); }
+function fbRematch(){      // 1 vs 1: the same room and seat (Player 1 stays Player 1) and the old duel's Room / Backpack / Musical; your gear can change first
+  const st=state; if(!st||st.mode!=='fb'||!st.mySide||!st.over||st.leftMsg) return;
+  const keep={url:st.fbUrl,code:st.roomCode,side:st.mySide,mus:!!st.musical,room:st.room||null,pack:!!st.fbPack};
+  if(fbPollId){ clearInterval(fbPollId); fbPollId=null; }
+  newGame('fb',true);
+  { const inp=document.getElementById('fbRoomInput'); if(inp) inp.value=keep.code; }
+  state.fbUrl=keep.url; state.roomCode=keep.code; state.fbMusical=keep.mus; state.claimSide=keep.side; state.rematch=true; state.rmRoom=keep.room; state.rmPack=keep.pack;
+  state.identityTaken=[];
+  state.customTarget='me'; state.customSlot=null; state.customNote='🔁 Rematch — change your gear if you like, then press Done.'; state.draftGear=getSavedGear(); state.demoQ=[]; state._customFrom='fbJoin'; state.phase='custom'; state.identityPurpose=null;
+  render();
+}
+async function fbtRematch(){      // Team Mode: everybody goes back to the lobby with the same seats (change gear there; the host starts again)
+  const F=fbtF(); if(!F||!state.over) return;
+  try{ await fbtReq('PATCH','',{phase:'lobby',turn:1,q:null,go:null,res:null}); }catch(e){ F.net='Could not start a rematch ('+e.message+')'; render(); return; }
+  fbtTick();
+}
 async function fbPushSelf(){
   if(state.mode!=='fb'||!state.mySide) return;
   const patch={}; patch[state.mySide]=pubSide(state[state.mySide],false);
@@ -4456,7 +4482,7 @@ function buildPlanMarkers(U,n){ U=U||cur();
   for(let i=0;i<q.length;i++){
     if(i===q.length-1) posBeforeLast=p;
     const np=planStep(p,q[i]);
-    if((MOVEY.includes(q[i].type)||q[i].type==='rdash')&&np!==p) ghost=np;
+    if((MOVEY.includes(q[i].type)||q[i].type==='rdash'||q[i].type==='dropped')&&np!==p) ghost=np;      // (v86 a dropped pawn: where it is set down)
     p=np;
   }
   if(ghost) markers.push({kind:'ghost',cell:ghost});
@@ -4674,7 +4700,7 @@ function musClick(t){      // 🎸🪕 Bash (two cells like a Slash) · 🎵 �
   state.pending=t; render();
 }
 // ---- 💼 (v62) the Backpack in battle: 💼 under the Wait button swaps the bottom row for the 4 backpack cells ----
-function packShown(U){ return (!!(U&&U.pack&&U.pack.some(Boolean))||!!(state.adv&&U===state.P))&&['queue','resolving','fightDone'].includes(state.phase)&&!state.musical&&state.mode!=='fb'&&!state.fbt&&!state.menu; }
+function packShown(U){ return (!!(U&&U.pack&&U.pack.some(Boolean))||!!(state.adv&&U===state.P))&&['queue','resolving','fightDone'].includes(state.phase)&&!state.musical&&!state.fbt&&!state.menu&&!(state.mode==='fb'&&U!==state[state.mySide]); }      // (v86 online 1 vs 1: your own Backpack)
 function packOpenNow(){ return !!(state.packOpen&&state.packOpen.turn===state.turn&&state.packOpen.side===state.activeSide)&&packShown(cur()); }      // closes by itself when the next turn begins
 function packToggle(){ state.packOpen=packOpenNow()?null:{turn:state.turn,side:state.activeSide}; state.bfMsg=''; if(isItemT(state.pending)){ state.pending=null; state.dpicks=[]; } render(); }
 function itemReady(U,i){ const k=(U.pack||[])[i], ty=U.queue.map(e=>e.type); if(!k||!packLeft(U,ty).includes(i)) return false;
@@ -4700,7 +4726,7 @@ function packUI(){ const U=cur(), box=document.getElementById('actBtns'), row=do
 // backpack → hand / armor / boots cell = swap them · hand / armor / boots → an empty backpack cell = put it away · main ⇄ off hand = 🔄 Switch (where the gear allows it)
 // Every backpack switch costs 1 SP and a queue slot. The class cell only plays its sound; the pawn cannot be changed here. The 💼 knob turns the backpack, a tap on it closes it.
 const BF_KEY={E:'emoji',B:'cls',C:'main',F:'armor',H:'boots',A:'off',D:null};
-function bfIcon(U,s,v){ if(!v) return ''; if(v==='boom') return '🪃'; if(s==='armor') return (ARMOR[v]||{}).icon||''; if(s==='boots') return (BOOT[v]||{}).icon||''; if(isMus(U)) return MUS_ICON[v]||'🪕'; if(isMage(U)) return ({spear:'🍢',ring:'💍',torch:'🔦',flask:'🧪'})[v]||'🔮'; return W_INFO[v]?W_INFO[v][0]:'❔'; }
+function bfIcon(U,s,v){ if(!v) return ''; if(v==='boom') return '🪃'; if(s==='armor') return (ARMOR[v]||{}).icon||''; if(s==='boots') return (BOOT[v]||{}).icon||''; if(isMus(U)) return MUS_ICON[v]||'🪕'; if(isMage(U)) return ({spear:'🍢',ring:'💍',torch:'🕯️',flask:'🛢️'})[v]||'🔮'; return W_INFO[v]?W_INFO[v][0]:'❔'; }
 function battleFlowerHTML(U){ const sl=bfSlots(U), g=rawGear(U), rot=state.packRot!=null?state.packRot:packCfg().rot, arc=packArc(rot), cx=115, cy=106;
   const clsIc=g.pboss?'👿':g.cls==='paladin'?palIcon(g):({knight:'⚔️',rogue:'♠️',berserk:'🌋',mage:'🧙',musician:'👩‍🎤'})[g.cls]||'⚔️';
   let s='';
@@ -4852,14 +4878,10 @@ function onHexClick(cell){
   if(typeof DEV!=="undefined"&&DEV.on&&DEV.pick){ devBoardPick(cell); return; }      // 🛠 DevTool: 📍 a cell for Move / an area
   if(state.phase==='teamSetup'){ teamSetupClick(cell); return; }
   if(isFull()&&state.phase==='queue'){      // (v80) tap one of your own pawns: plan for it · tap an enemy (nothing being aimed): show its card
-    const hk=humanAllies().find(k=>k!==state.activeSide&&!lockedOut(state[k])&&(cell===state[k].pos||cell===plannedPosOf(state[k])));
+    const hk=ctlKeys().find(k=>k!==state.activeSide&&!lockedOut(state[k])&&(cell===state[k].pos||cell===plannedPosOf(state[k])));
     if(hk&&!(state.pending&&computeValid().validCells.includes(cell))){ selectAlly(hk); return; }
-    const fk=sideKeys(false).find(k=>state[k].pos===cell&&!isDead(state[k]));
+    const fk=foeKeys().find(k=>state[k].pos===cell&&!isDead(state[k]));
     if(fk&&!state.pending){ state.focusK=fk; render(); return; }
-  }
-  if(state.mode==='team'&&state.phase==='queue'&&multiOwn()&&!isFull()){
-    const ok=MATE[state.activeSide], O=state[ok];
-    if(!lockedOut(O)&&(cell===O.pos||cell===plannedPosOf(O))&&!(state.pending&&computeValid().validCells.includes(cell))){ selectAlly(ok); if(cur().queue.length<3&&!lockedOut(cur())) onActionClick('move'); return; }
   }
   if(state.phase!=='queue'||cur().queue.length>=3||lockedOut(cur()))return;
   const {planPos,validCells}=computeValid();
@@ -4953,7 +4975,7 @@ function undoLast(){
   if(isMage(cur())){ const L=cur().queue.length; if(SPELLS.includes(last.type)&&last.rec) cur().craft={open:false,rec:last.rec.slice(),spell:last.type,at:L}; else if(last.type==='mana') cur().craft={open:true,rec:[],spell:null,at:L}; else if(last.type==='craft') cur().craft={open:true,rec:(last.rec||[]).slice(0,-1),spell:null,at:L}; }      // undoing a cast gives the spell back; undoing Gain mana reopens the book; undoing Spellcrafting takes the second Fundamental back
   if(state.fbt){ fbtMark(keyOf(cur())); fbtDrive(); fbtFlushSoon(); }
   else if(isFull()){ if(cur()===state.P) for(const k of botAllies()){ const B=state[k]; while(B.queue.length>cur().queue.length){ const f=B.queue.pop(); if(f&&f.spBefore!==undefined) B.sp=f.spBefore; } } }      // (v80) every Bot ally forgets its answer
-  else if(state.mode==='team'&&state.F&&!fHuman()&&state.F.queue.length>cur().queue.length){ const f=state.F.queue.pop(); if(f&&f.spBefore!==undefined) state.F.sp=f.spBefore; }      // Friend Bot forgets what it did
+  else if(state.mode==='team'&&state.F&&state.F.queue.length>cur().queue.length){ const f=state.F.queue.pop(); if(f&&f.spBefore!==undefined) state.F.sp=f.spBefore; }      // Friend Bot forgets what it did
   state.pending=null; state.pendingFirstCell=null; state.dpicks=[];
   render();
 }
@@ -6386,6 +6408,9 @@ function resolveRound(r){
         burnOn(cs,A.pos,BURN_TTL); smokeLong.push(...cs); }
       if(act.type==='heatsink'&&!allyH){ const cells=[A.pos,...(RING[A.pos]||[])].filter(c=>areaAt('burn',c)); for(const c of cells) areaAt('burn',c).ttl=0; heatRep[Sk]={cells}; fireRep[Sk]={kind:'heat',from:A.pos,cells}; }      // 🫖 the flames round the Mage are drunk in
     }
+    for(const Sk of ['P','E']){ const act=Sk==='P'?actP:actE; if(!isFire(state[Sk])||(Sk==='P'?downP:downE)||!isOilT(act.type)) continue;      // 🛢️🔥 (v86) oil poured into the flames explodes: smoke, and the fire burns for 6 again
+      const cs=oilCells(act); cs.forEach((c,i)=>{ if(!areaAt('burn',c)||litC.has(c)) return; litC.add(c); q.push({c,from:i?cs[i-1]:prePos[Sk],d:0}); }); }
+    for(const a of (state.areas||[]).filter(x=>x.kind==='oil'&&x.ttl>0)){ const b=(RING[a.cell]||[]).find(n=>areaAt('burn',n)); if(b) igniteCell(a.cell,b,0); }      // 🔥🛢️ (v86) a Burning Surface sets the oil next to it alight (oil poured this action: from the next one)
     for(const k of ['P','E']) if(state[k].oiled>0&&areaAt('burn',state[k].pos)) ignitePawn(k,prePos[k],0,BURN_DUR);      // an Oiled pawn walks into the flames
     for(let i=0;i<q.length&&i<60;i++){ const e=q[i]; boomRep.push({c:e.c,d:e.d,from:e.from,pawn:!!e.Vk}); smokeCells.push(e.c);
       if(e.Vk){ hurtF(e.Vk,OIL_BOOM); burnSet.push({Vk:e.Vk,dur:e.dur}); igniteCell(e.c,e.from,e.d); evts.push(`💥 The oil on ${nm(e.Vk)} explodes: ${fmtNum(OIL_BOOM)} damage — Burning for ${e.dur} actions.`); }
@@ -6434,7 +6459,7 @@ function resolveRound(r){
     for(const h of ((state.boomNow&&state.boomNow.hits)||[])){ if(h.v!==key) continue; const n=S==='P'?nP:nE;
       if(h.mul<0){ evts.push(`🪃 ${n}'s blow knocks the Boomerang back.`); continue; }
       if(!(h.mul>0)){ evts.push(`🪃 ${n} dodges the Boomerang.`); continue; }
-      const d=r3(BOOM_DMG*h.mul); if(S==='P'){ dmgP=r3(dmgP+d); staggerP=true; } else { dmgE=r3(dmgE+d); staggerE=true; }
+      const d=r3(BOOM_DMG*h.mul); if(S==='P') dmgP=r3(dmgP+d); else dmgE=r3(dmgE+d);      // (v86) a Boomerang hit never staggers
       evts.push(`🪃 The Boomerang hits ${n}${h.mul===2?' stepping into its flight (×2)':h.mul===0.5?' leaving its flight (½)':''}: ${fmtNum(d)} damage!`); } }
   const bombBoom=[], bombNew=[];      // 💼 (v62) a Bomb / Dynamite thrown in an earlier action goes off now — EVERY pawn on its cells is hurt (friendly fire)
   for(const b of (state.bombs||[])){ bombBoom.push(b); evts.push(`💥 The ${ITEMS[b.kind].nm} goes off on ${b.cells.join("/")}!`); for(const c of b.cells) if(!boomRep.some(z=>z.c===c)) boomRep.push({c,d:0,t0:BOMB_BOOM});
@@ -6712,8 +6737,9 @@ function resolveRound(r){
     for(const b of fireBurn) mkIce('burn',b.c,b.ttl);      // 🪔 🏮 🌶️ (the cells of a Fireball / Firewall / Blaze Rush trail)
     for(const c of new Set(burnCells)) mkIce('burn',c,BURN_TTL);      // 🔥 the oil that exploded burns on
     for(const S of ['P','E']){ const L=state[S], act=S==='P'?actP:actE; if(!isFire(L)||(S==='P'?downP:downE)||!isOilT(act.type)) continue;      // 🛢️ Pour Oil: an Oil Surface from the next action (oil poured into the flames only feeds them)
-      const cs=oilCells(act); for(const c of cs){ if(areaAt('burn',c)) addArea('burn',c,BURN_TTL); else mkIce('oil',c,OIL_TTL); }
-      evts.push(`🛢️ ${S==='P'?nP:nE} pours oil on ${cs.join('/')} — an Oil Surface for ${OIL_TTL} actions.`); }
+      const cs=oilCells(act), fed=cs.filter(c=>areaAt('burn',c)), wet=cs.filter(c=>!fed.includes(c)); for(const c of fed) addArea('burn',c,BURN_TTL).ttl=BURN_TTL; for(const c of wet) mkIce('oil',c,OIL_TTL);
+      if(wet.length) evts.push(`🛢️ ${S==='P'?nP:nE} pours oil on ${wet.join('/')} — an Oil Surface for ${OIL_TTL} actions.`);
+      if(fed.length) evts.push(`🛢️🔥 ${S==='P'?nP:nE} pours oil into the flames on ${fed.join('/')} — they burn for ${BURN_TTL} actions again.`); }
     for(const [S,U,dest,bumped,down,act] of [['P',P,destP,bumpedP,downP,actP],['E',E,destE,bumpedE,downE,actE]]) if(hasRollers(U)&&isFire(U)&&!down&&act.type==='dodge'&&dest&&!bumped&&U.pos!==prePos[S]&&!areaAt('burn',prePos[S])) mkIce('oil',prePos[S],ROLL_OIL);      // 🛼 a rolling Dodge leaves an Oil Surface behind
     for(const c of new Set(smokeLong)){ const ar=addArea('smoke',c,RING_SMOKE); ar.fresh=true; fogNew.push({...ar}); }      // (Ring of Fire: 6 actions of Smoke)
     if(smokeCells.length){ for(const c of new Set(smokeCells)){ const ar=addArea('smoke',c,SMOKE_TTL); ar.fresh=true; fogNew.push({...ar}); } evts.push(`💨 Smoke billows up on ${[...new Set(smokeCells)].join(', ')} (${SMOKE_TTL} actions).`); }      // 💨 every explosion
@@ -7317,6 +7343,11 @@ function drawUnits(t){
   }
   const body={}, faceOf={}, hiddenS={};
   const puK=S=>{ if(!state[S]) return null; return (info&&info.puPre)?(t>=H?info.puPost[S]:info.puPre[S]):(state[S].pu||null); };
+  const puDir=cK=>{ const f=faceOf[cK]; if(f) return f; const fc=state[cK].face; return (fc&&POS[fc.from]&&POS[fc.to]&&fc.from!==fc.to)?vec(dcoord(fc.from),dcoord(fc.to)):[0,1]; };      // 👥 (v86) the passenger rides on the carrier's back: opposite the way the carrier faces (no facing: as if turned to the viewer)
+  const puXY=(S,cK)=>{ const cb=body[cK], d=puDir(cK); let bx=cb.x-d[0]*11*Z, by=cb.y-d[1]*11*Z-6, fs=17;
+    if(info&&info.puPre&&!info.puPre[S]&&t>=H){ const u=ease(clamp01((t-H)/380)), [x0,y0]=dcoord(state[S].pos); bx=x0+(bx-x0)*u; by=y0+(by-y0)*u; fs=Math.round((26-9*u)*10)/10; }      // (being picked up: it is lifted from the floor onto the back)
+    return {bx,by,fs}; };
+  const puSVG=(S,cK)=>{ const {bx,by,fs}=puXY(S,cK); return `<text class="unit" x="${f2(bx)}" y="${f2(by+fs*0.37)}" style="font-size:${f2(fs)}px;filter:${tintOf(S,state[S])} grayscale(1) brightness(.6);opacity:.9">${sideEmoji(S)}</text>`; };
   for(const S of tkeys()){
     if(state[S].ghost){ hiddenS[S]=true; continue; }      // 🧭 (v67) a broken corpse's slot
     const bs=state[S].boss?1.25:(state[S].big?1.5:1); curBs=bs;      // (v71 the Mini Boss: 1.5×)      // (v58: a player of the Boss class is exactly as big as the Boss)      // (👿 v55: a player of the Boss class 1.5×)   // the Boss and all its animation icons are 25% bigger
@@ -7334,6 +7365,7 @@ function drawUnits(t){
       f=faceVec(v);
       if(cStrike) f=vec([x,y],dcoord(info.counter.b));
     }
+    if(info&&info.puPre&&info.puPre[S]&&!info.puPost[S]&&t>=H&&t<H+380&&state[info.puPre[S]]){ const [cx,cy]=dcoord(state[info.puPre[S]].pos), u=ease(clamp01((t-H)/380)); x=cx+(x-cx)*u; y=cy-6+(y-cy+6)*u; }      // 👥 (v86) set down: it slides off the carrier's back onto its cell
     body[S]={x,y}; faceOf[S]=f;
     let stOp=1;
     { const m=stealthMode(S), pre=(info&&info.pre&&info.pre[S])?info.pre[S].stealth:(st.stealth||0), post=st.stealth||0;
@@ -7372,6 +7404,7 @@ function drawUnits(t){
         if(postI&&!preI&&t<H+700){ const u=clamp01((t-H)/700); for(let j=0;j<6;j++){ const a=j*Math.PI/3+u*1.4; top+=`<text class="item" x="${f2(x+(14+36*u)*Math.cos(a))}" y="${f2(y+(14+36*u)*Math.sin(a)+4)}" style="font-size:${f2(9+5*(1-u))}px;opacity:${f2(1-u)}">❄️</text>`; } }
       }
     }
+    for(const S2 of tkeys()) if(S2!==S&&puK(S2)===S&&!hiddenS[S2]) pawns+=puSVG(S2,S);      // 👥 (v86) the passenger first: the carrier is drawn over it
     if(stOp<1||slp) pawns+=`<g${stOp<1?` opacity="${f2(stOp)}"`:''}${slp?` transform="rotate(-24 ${f2(x)} ${f2(y)})" style="filter:grayscale(.55) brightness(.9)"`:''}>`;
     { const brk=(st.breaking&&info)?clamp01((t-(info.hit||0))/650):0; if(brk>0) pawns+=`<g opacity="${f2(1-brk)}" transform="translate(${f2(Math.sin(t/17)*4.5*(1-brk))} ${f2(6*brk*brk)})">`; st._brk=brk; }      // 🧭 (v68) a broken corpse trembles and fades as the blow lands
     pawns+=`<text class="unit${rage&&!info?' bpulse':''}${shake&&!info?' tremble':''}" x="${f2(x+px+tx)}" y="${f2(y+py+8.4*bs+ty)}"${(()=>{const fs=((bs!==1&&!(rage&&!info))||(rage&&info))?'font-size:'+f2(ufs)+'px;':'';const fl=tintOf(S,st)+' '+(chl?'sepia(.55) hue-rotate(160deg) saturate(2.4) brightness(1.08) ':'')+(oilT?'brightness(.62) saturate(.7) contrast(1.1) ':'')+(kd?'grayscale(1) brightness(.55)':'');const ex=fl?'filter:'+fl.trim()+';'+(kd?'opacity:.6;':''):'';return (fs||ex)?' style="'+fs+ex+'"':'';})()}>${dead?'☠️':sideEmoji(S)}</text>`;
@@ -7748,8 +7781,8 @@ function drawUnits(t){
       const B=body[S], w=clamp01((t-H+140)/460), op=w<0.35?1:1-(w-0.35)/0.65, pts=[[B.x-6,B.y-80],[B.x+8,B.y-52],[B.x-5,B.y-34],[B.x+6,B.y-16],[B.x,B.y]].map(p=>f2(p[0])+','+f2(p[1])).join(' ');
       top+=`<polyline points="${pts}" fill="none" stroke="#fff6a8" stroke-width="3.2" stroke-linejoin="round" opacity="${f2(op)}" style="filter:drop-shadow(0 0 4px #9fb4ff)" pointer-events="none"></polyline>`;
       if(w<0.5) top+=`<polygon points="${hexPoints(B.x,B.y,33)}" fill="rgba(200,210,255,${f2(.45*(1-w/0.5))})" pointer-events="none"></polygon>`; } }
-  { curBs=1; for(const S of tkeys()){ const cK=puK(S); if(!cK||!body[cK]) continue; const cb=body[cK], ff=faceOf[cK]; const bx=cb.x+(ff?-ff[0]*13*Z:-10), by=cb.y+(ff?-ff[1]*13*Z:11); body[S]={x:cb.x,y:cb.y};
-    pawns+=`<text class="unit" x="${f2(bx)}" y="${f2(by+5.6)}" style="font-size:15px;filter:grayscale(1) brightness(.6);opacity:.85">${sideEmoji(S)}</text>`; stats+=stat('👥',bx+9,by-10); if(info&&info.healed&&info.healed[S]&&t>=H){ const u=clamp01((t-H)/900); floats+=`<text class="dmg" x="${f2(bx)}" y="${f2(by-14-u*14)}" fill="#8dff9d" opacity="${f2(1-u)}">+${fmtUI(info.healed[S])}♥️</text>`; } } }
+  { curBs=1; for(const S of tkeys()){ const cK=puK(S); if(!cK||!body[cK]) continue; const cb=body[cK], {bx,by}=puXY(S,cK); body[S]={x:cb.x,y:cb.y};      // (drawn behind its carrier, in the carrier's turn above)
+    stats+=stat('👥',bx+9,by-10); if(info&&info.healed&&info.healed[S]&&t>=H){ const u=clamp01((t-H)/900); floats+=`<text class="dmg" x="${f2(bx)}" y="${f2(by-14-u*14)}" fill="#8dff9d" opacity="${f2(1-u)}">+${fmtUI(info.healed[S])}♥️</text>`; } } }
 
   {      // 🪃 (v84) Boomerangs: on the floor · in the air (spinning, its next cells marked) · flying during the action
     const bmIc=(x,y,rot,op,fs)=>`<text x="${f2(x)}" y="${f2(y+7)}" text-anchor="middle" style="font-size:${fs||20}px${op!=null?';opacity:'+f2(op):''}" transform="rotate(${f2(rot)} ${f2(x)} ${f2(y)})" pointer-events="none">🪃</text>`;
@@ -7887,7 +7920,7 @@ async function replayTurns(list){
   if(!(state.phase==='queue'||state.over)) return;
   const saved=state;
   const rs=blankState('replay');
-  rs.viewer=viewerSide(); rs.mirror=(saved.mode==='fb'&&saved.mySide==='E'); rs.revealAll=!!saved.over;
+  rs.viewer=viewerSide(); rs.mirror=(saved.mode==='fb'&&saved.mySide==='E')||(!!saved.fbt&&!myTeamA()); rs.revealAll=!!saved.over;
   rs.log=[]; replayAbort=false; state=rs;
   try{
     for(const snap of list){
@@ -7989,8 +8022,12 @@ function normSide(s,side){
   const base=freshSide(side==='P'?'K':'E');
   if(!s) return base;
   const q=Array.isArray(s.queue)?s.queue.filter(Boolean):(s.queue?Object.values(s.queue):[]);
-  return {...base,...s,queue:q,skip:!!s.skip};
+  const o={...base,...s,queue:q,skip:!!s.skip};
+  const four=x=>[0,1,2,3].map(i=>(x&&x[i]!=null)?x[i]:null);      // 💼 (v86) the database drops empty slots: the Backpack always has 4
+  if(s.pack){ o.pack=four(s.pack); o.packMeta=four(s.packMeta); } else delete o.pack;
+  return o;
 }
+const fbHas=(d,s)=>!!(d&&d[s]&&(d[s].gen||0)===(d.gen||0));      // 🔁 (v86) a seat counts only if it was taken for this match (d.gen goes up with every Rematch)
 function pubSide(s,withQueue){ const o={...s}; if(!withQueue)o.queue=[]; return o; }
 
 function readFbInputs(){
@@ -8013,11 +8050,11 @@ async function fbSetupStart(musical){
   const myId=clientId();
   const stale=!d||d.phase==='over';
   if(!stale){
-    const mine=(d.P&&d.P.id===myId)?'P':((d.E&&d.E.id===myId)?'E':null);
+    const mine=(fbHas(d,'P')&&d.P.id===myId)?'P':((fbHas(d,'E')&&d.E.id===myId)?'E':null);
     if(mine){ fbResume(d,mine); return; }
   }
   let side;
-  if(stale||!d.P) side='P'; else if(!d.E) side='E';
+  if(stale||!fbHas(d,'P')) side='P'; else if(!fbHas(d,'E')) side='E';
   else { err.textContent='This room already has two players. Use a different room code, or press “Reset room” if it is left over from an old game.'; return; }
   state.claimSide=side;
   const oe=(!stale&&d[other(side)]&&d[other(side)].emoji)||null;
@@ -8041,11 +8078,29 @@ async function fbResetRoom(){
   try{ await fbReq('DELETE'); await fetch(FB_URL+'/rooms/'+state.roomCode+'/team.json',{method:'DELETE'}); err.textContent='Room wiped ✓'; }
   catch(e){ err.textContent='Could not reset the room ('+e.message+').'; }
 }
+// 🧨 (v86, DevTool only) wipe every room: list the room codes (shallow read), then delete each one
+async function fbResetAll(){
+  const err=document.getElementById('fbSetupError'), btn=document.getElementById('fbResetAllBtn');
+  if(!devUnlocked()||!btn) return;
+  if(!state.resetAllArmed){
+    state.resetAllArmed=true; btn.textContent='Click again to wipe ALL rooms';
+    setTimeout(()=>{ if(state){ state.resetAllArmed=false; } btn.textContent='🧨 Reset ALL rooms'; },4000);
+    return;
+  }
+  state.resetAllArmed=false; btn.textContent='🧨 Reset ALL rooms'; err.textContent='Wiping every room…';
+  try{
+    const r=await fetch(FB_URL+'/rooms.json?shallow=true'); if(!r.ok) throw new Error('GET '+r.status);
+    const codes=Object.keys((await r.json())||{});
+    const res=await Promise.all(codes.map(c=>fetch(FB_URL+'/rooms/'+encodeURIComponent(c)+'.json',{method:'DELETE'}).then(x=>x.ok).catch(()=>false)));
+    const bad=res.filter(x=>!x).length;
+    err.textContent=codes.length?('All rooms wiped ✓ ('+(codes.length-bad)+' of '+codes.length+(bad?' — '+bad+' failed, try again':'')+')'):'There were no rooms ✓';
+  }catch(e){ err.textContent='Could not wipe the rooms ('+e.message+').'; }
+}
 function fbResume(d,side){
   state.mySide=side; state.activeSide=side; state.musical=!!d.musical; state.room=d.room||null;
   state.P=normSide(d.P,'P'); state.E=normSide(d.E,'E');
   state.turn=d.turn||1; if(d.log) state.log=d.log;
-  state.oppJoined=!!d[other(side)];
+  state.oppJoined=fbHas(d,other(side)); state.fbPack=!!d.pack; state.fbGen=d.gen||0;
   state.phase=d['ready'+side]?'waiting':'queue';
   state.identityPurpose=null;
   startPolling(); render();
@@ -8056,30 +8111,37 @@ async function fbClaim(name,emoji){
   err.textContent='Joining…';
   let d;
   try{ d=await fbGet(); }catch(e){ err.textContent='Could not reach the database ('+e.message+').'; return; }
-  const stale=!d||d.phase==='over';
-  if(!stale){
-    if(d[side]&&d[side].id!==myId){ err.textContent='That seat was just taken. Go back with “🔥 Online” and try again.'; return; }
-    const oe=d[other(side)]&&d[other(side)].emoji;
+  const rm=!!state.rematch;      // 🔁 (v86) a Rematch: the same room, the same seat, the old duel's settings
+  const reopen=rm&&!!d&&d.phase==='over';      // the first one back reopens the finished duel (gen + 1); the other one then just takes its seat
+  const stale=!d||(d.phase==='over'&&!rm);      // (stale: a brand-new room document)
+  if(!stale&&!reopen){
+    if(fbHas(d,side)&&d[side].id!==myId){ err.textContent='That seat was just taken. Go back with “🔥 Online” and try again.'; return; }
   }
   const mus=stale?!!state.fbMusical:!!(d&&d.musical);      // 🎼 the room decides
-  if(!stale&&mus!==!!state.fbMusical) state.log=[`⚠️ This room is already a ${mus?'🎼 Musical':'normal'} duel — you join it as that. (Use another room code or 🗑 Reset room for a ${state.fbMusical?'Musical':'normal'} one.)`];
-  const fbRoom=stale?onlineRoomObj():((d&&d.room)||null); setMap(fbRoom||true);      // 🗺️ (v58) the duel's Room: picked by whoever opens the room
-  const me={...freshSide(fbRoom?roomSpawns(fbRoom,['P','E'])[side]:(side==='P'?'K':'E')),id:myId,name,emoji,fx:getFx(),gear:mus?musGear(getSavedGear()):getSavedGear()}; initArmor(me); if(mus) me.ip=0;
+  if(!stale&&!rm&&mus!==!!state.fbMusical) state.log=[`⚠️ This room is already a ${mus?'🎼 Musical':'normal'} duel — you join it as that. (Use another room code or 🗑 Reset room for a ${state.fbMusical?'Musical':'normal'} one.)`];
+  const fbRoom=stale?(rm?(state.rmRoom||null):onlineRoomObj()):((d&&d.room)||null); setMap(fbRoom||true);      // 🗺️ (v58) the duel's Room: picked by whoever opens the room
+  const pack=!mus&&(stale?(rm?!!state.rmPack:ONLINE_PACK):!!(d&&d.pack));      // 💼 (v86) the Backpack: picked by whoever opens the room
+  const gen=stale?0:((d.gen||0)+(reopen?1:0));
+  const me={...freshSide(fbRoom?roomSpawns(fbRoom,['P','E'])[side]:(side==='P'?'K':'E')),id:myId,name,emoji,fx:getFx(),gear:mus?musGear(getSavedGear()):getSavedGear(),gen}; initArmor(me); if(mus) me.ip=0;
+  if(pack) packGive(me);
+  const log0=[(rm?'🔁 Rematch! ':'')+(mus?'🎼 A musical duel begins.':'A new duel begins.')];
   try{
-    if(stale){ const doc={turn:1,phase:'queue',log:[mus?'🎼 A musical duel begins.':'A new duel begins.'],readyP:false,readyE:false,musical:mus,room:fbRoom||null}; doc[side]=pubSide(me); await fbReq('PUT',doc); }
+    if(stale){ const doc={turn:1,phase:'queue',log:log0,readyP:false,readyE:false,musical:mus,room:fbRoom||null,pack,gen}; doc[side]=pubSide(me); await fbReq('PUT',doc); }
+    else if(reopen){ const patch={turn:1,phase:'queue',log:log0,readyP:false,readyE:false,left:null,devOps:null,gen}; patch[side]=pubSide(me); await fbReq('PATCH',patch); }
     else { const patch={}; patch[side]=pubSide(me); await fbReq('PATCH',patch); }
   }catch(e){ err.textContent='Could not join ('+e.message+').'; return; }
   await sleep(400);
   let v; try{ v=await fbGet(); }catch(e){ v=null; }
-  if(!v||!v[side]||v[side].id!==myId){ err.textContent='Someone else took that seat at the same moment — go back and try again.'; return; }
+  if(!v||!fbHas(v,side)||v[side].id!==myId){ err.textContent='Someone else took that seat at the same moment — go back and try again.'; return; }
   saveIdentity(name,emoji);
+  state.rematch=false; state.fbPack=pack; state.fbGen=v.gen||0;
   state.mySide=side; state.activeSide=side; state.musical=mus; state.room=fbRoom||null; if(fbRoom&&state.turn<=1) state.areas=roomAreas(fbRoom);
-  state.P=side==='P'?me:normSide(!stale?v.P:null,'P');
-  state.E=side==='E'?me:normSide(!stale?v.E:null,'E');
-  state.turn=stale?1:(v.turn||1);
-  if(!stale&&v.log) state.log=v.log;
-  state.oppJoined=!stale&&!!v[other(side)];
-  state.phase=(!stale&&v['ready'+side])?'waiting':'queue';
+  state.P=side==='P'?me:normSide(fbHas(v,'P')?v.P:null,'P');
+  state.E=side==='E'?me:normSide(fbHas(v,'E')?v.E:null,'E');
+  state.turn=v.turn||1;
+  if(v.log) state.log=v.log;
+  state.oppJoined=fbHas(v,other(side));
+  state.phase=v['ready'+side]?'waiting':'queue';
   state.identityPurpose=null; err.textContent='';
   startPolling(); render();
 }
@@ -8094,13 +8156,14 @@ async function fbPublishResolved(){
   if(done) return;
   const doc={turn:state.turn,phase:state.over?'over':'queue',log:state.log.slice(0,60),readyP:false,readyE:false,P:pubSide(state.P),E:pubSide(state.E)};
   if(c&&c.room) doc.room=c.room;      // (🗺️ the duel's Room stays)
+  if(c){ doc.musical=!!c.musical; doc.pack=!!c.pack; doc.gen=c.gen||0; }      // (🎼 💼 🔁 v86: the duel's settings and its Rematch number stay too)
   if(c&&c.devOps) doc.devOps=c.devOps;      // (🛠 keep the DevTool ops of this match)
   try{ await fbReq('PUT',doc); state.net={ok:true,msg:''}; }
   catch(e){ state.net={ok:false,msg:'Could not publish the result ('+e.message+') — your opponent may need to refresh.'}; }
 }
 async function pollMatch(){
   const st=state;
-  if(st.mode!=='fb'||!st.mySide||st.polling||st.over) return;
+  if(st.mode!=='fb'||!st.mySide||st.polling||(st.over&&st.leftMsg)) return;
   st.polling=true;
   try{
     let d;
@@ -8108,12 +8171,13 @@ async function pollMatch(){
     catch(e){ if(state===st){ st.net={ok:false,msg:'Connection problem ('+e.message+') — retrying…'}; render(); } return; }
     if(state!==st) return;        // a replay / new game took over while we were waiting
     st.net={ok:true,msg:''};
+    if(st.over){ const n=(d&&(d.gen||0)>(st.fbGen||0)&&fbHas(d,other(st.mySide)))?'🔁 '+(d[other(st.mySide)].name||'Your opponent')+' wants a rematch — press 🔁 Rematch!':''; if(n!==(st.rmNote||'')){ st.rmNote=n; render(); } return; }      // (v86) after the duel: only listen for a Rematch
     if(!d){ st.net={ok:false,msg:'This room was wiped. Press “🔥 Online” to join again.'}; render(); return; }
     devSync(d.devOps);      // 🛠 DevTool changes made by the other player
-    if(d.left&&d.left!==st.mySide&&!st.over){ st.over=true; st.phase='over'; st.leftMsg=sideName(other(st.mySide))+' left the room — you win!'; render(); return; }
+    if(d.left&&d.left!==st.mySide&&!st.over){ st.over=true; st.phase='over'; st.leftMsg=sideName(other(st.mySide))+(st.oppJoined?' left the room — you win!':' left the room.'); render(); return; }
     const me=st.mySide, op=other(me);
-    st.oppJoined=!!d[op]; st.oppReady=!!d['ready'+op];
-    if(d[op]) st[op]=normSide(d[op],op);
+    st.oppJoined=fbHas(d,op); st.oppReady=st.oppJoined&&!!d['ready'+op];
+    if(st.oppJoined) st[op]=normSide(d[op],op);
     const dTurn=d.turn||1;
     if(dTurn>st.turn||(d.phase==='over'&&!st.over)){
       st.P=normSide(d.P,'P'); st.E=normSide(d.E,'E');
@@ -8702,7 +8766,7 @@ function renderHUD(){
     if(u.assn>0) sub+=`<div class="sub lbtag neg">💤 Assassinated · ${u.assn} left</div>`;
     if(u.stealth>0) sub+=`<div class="sub lbtag pos">🫥 Stealth · ${u.stealth} left</div>`;
     if(u.fogged>0) sub+=`<div class="sub lbtag neg">😶‍🌫️ Fogged · ${u.fogged} left</div>`;
-    if(u.pu) sub+='<div class="sub lbtag pos">👥 Picked Up</div>'; else if(u.kd) sub+='<div class="sub lbtag neg">🌀 Knocked down</div>';
+    if(u.pu) sub+=`<div class="sub lbtag pos">👥 Picked Up${kdTimerHTML(u)}</div>`; else if(u.kd) sub+=`<div class="sub lbtag neg">🌀 Knocked down${kdTimerHTML(u)}</div>`;
     if(u.carry) sub+='<div class="sub lbtag pos">👥 Carrying</div>';
     // heals queued this turn: show the outcome "→ new HP / new max HP" (green / red), accumulated over both heals
     let hpTxt=`HP ${fmtUI(u.hp)}/${fmtUI(u.maxHp)}`;
@@ -8731,15 +8795,17 @@ function renderHUD(){
   document.getElementById('hudYou').innerHTML=`<b>${emojiHTML('P')} ${sideName('P')}${you('P')||youTag('P')}</b>${gearIcons(state.P)}<br>`+bar('P',hideSpF('P',online&&state.mySide!=='P'));
   document.getElementById('hudFoe').innerHTML=`<b>${emojiHTML('E')} ${sideName('E')}${you('E')||youTag('E')}</b>${gearIcons(state.E)}${(state.mode==='ai'&&!state.E.boss&&!ov&&!state.anim&&(state.phase==='queue'||state.over))?`<button class="ctrl gray" style="padding:1px 6px;font-size:11px;margin-left:4px" title="Choose the Bot's gear" onclick="openCustom('bot')">⚙️ Gear</button>`:''}<br>`+bar('E',hideSpF('E',(online&&state.mySide!=='E')||(state.mode==='ai'||state.mode==='team')));
   { const hb=document.getElementById('hudBox'); if(hb) hb.className='hud'+(state.F?' team4':'');
-    const inT=state.mode==='team'&&!state.sim&&state.phase!=='teamSetup'&&state.phase!=='teamMenu';
-    for(const [id,k] of [['hudYou','P'],['hudF','F'],['hudFoe','E'],['hudE2','E2']]){ const d=document.getElementById(id); if(!d) continue; if(inT&&state.activeSide===k&&state[k]&&(k==='P'||state.F||state.fbt)) d.classList.add('selinfo'); else d.classList.remove('selinfo'); } }
+    const inT=state.mode==='team'&&!state.sim&&state.phase!=='teamSetup';
+    for(const [id,k] of [['hudYou','P'],['hudF','F'],['hudFoe','E'],['hudE2','E2']]){ const d=document.getElementById(id); if(!d) continue; if(id==='hudYou') d.className=''; if(inT&&(isFull()?false:(state.activeSide===k&&state[k]&&(k==='P'||state.F)))) d.classList.add('selinfo'); else d.classList.remove('selinfo'); } }
   { const hf=document.getElementById('hudF'); if(hf) hf.innerHTML=state.F?`<b>${sideEmoji('F')} ${sideName('F')}${youTag('F')}</b>${gearIcons(state.F)}<br>`+bar('F',hideSpF('F',false)):''; }
   { const h2=document.getElementById('hudE2'); if(h2) h2.innerHTML=state.E2?`<b><span style="filter:${emojiFilter('E2')}">${sideEmoji('E2')}</span> ${sideName('E2')}${youTag('E2')}</b>${gearIcons(state.E2)}<br>`+bar('E2',hideSpF('E2',true)):''; }
   if(state.adv&&advE2Key()!=='E2'){ const fk=advE2Key(), d=document.getElementById('hudE2'); if(d) d.innerHTML=`<b>${emojiHTML(fk)} ${sideName(fk)}</b>${gearIcons(state[fk])}<br>`+bar(fk,hideSpF(fk,true)); }      // 🧭 (v81) a third (fourth…) enemy you tapped: its card in the second slot
-  if(isFull()&&state.phase!=='teamMenu'){      // 👥 (v80) two cards only: the pawn you plan for · the enemy you tapped (bars over every head on the board)
-    const a=teamA(state.activeSide)?state.activeSide:'P', fk=(state.focusK&&state[state.focusK]&&!isDead(state[state.focusK]))?state.focusK:(sideKeys(false).find(k=>!isDead(state[k]))||'E');
+  if(isFull()){      // 👥 (v80) two cards only: the pawn you plan for · the enemy you tapped (bars over every head on the board)
+    const own=ownKeys(), a=own.includes(state.activeSide)?state.activeSide:(own[0]||'P'), fk=(state.focusK&&state[state.focusK]&&!isDead(state[state.focusK]))?state.focusK:(foeKeys().find(k=>!isDead(state[k]))||foeKeys()[0]||'E');
     const hb=document.getElementById('hudBox'); if(hb) hb.className='hud';
-    if(state[a]) document.getElementById('hudYou').innerHTML=`<b>${emojiHTML(a)} ${sideName(a)}${youTag(a)}</b>${gearIcons(state[a])}<br>`+bar(a,false);
+    { const hy=document.getElementById('hudYou'), inT=state.mode==='team'&&!state.sim&&state.phase!=='teamSetup', ctl=ctlKeys();      // (v86) every pawn of your team has its card (downed ones too); the one you plan for glows cyan, a tap on another of yours switches to it
+      hy.className='hudTeam'; hy.innerHTML=own.filter(k=>state[k]&&!state[k].ghost).map(k=>{ const U=state[k], pick=ctl.includes(k)&&k!==a&&!lockedOut(U)&&state.phase==='queue'&&!state.anim;
+        return `<div class="hudCard${inT&&k===a?' selinfo':''}${pick?' pick':''}"${pick?` onclick="selectAlly('${k}')" title="Plan for ${sideName(k)}"`:''}><b>${emojiHTML(k)} ${sideName(k)}${youTag(k)}</b>${gearIcons(U)}<br>`+bar(k,false)+'</div>'; }).join(''); }
     if(state[fk]) document.getElementById('hudFoe').innerHTML=`<b>${emojiHTML(fk)} ${sideName(fk)}</b>${gearIcons(state[fk])} <span class="sub">· tap an enemy</span><br>`+bar(fk,hideSpF(fk,true));
     for(const id of ['hudF','hudE2']){ const d=document.getElementById(id); if(d) d.innerHTML=''; } }
   document.getElementById('log').innerHTML=(ov?ov.log:((state.over&&state.logFull&&!state.anim)?state.logFull:state.log)).map(l=>`<div>${l}</div>`).join('');
@@ -8891,8 +8957,8 @@ function render(){
       return [s,pv]; };
       const [a1,b1]=mk(buildPlanMarkers(cur()),state.activeSide); s+=a1; pv+=b1;
       if(state.phase==='queue'&&isItemT(state.pending)&&(state.dpicks||[]).length){ const it=ITEMS[itemKind(cur(),state.pending)]||{}, pk=state.dpicks; const [a2,b2]=mk(pk.map(c=>({kind:'fxm',cell:c,lbl:it.ic||'💣',fill:'rgba(255,110,40,.34)'})),state.activeSide); s+=a2; pv+=b2; }      // 💼 the cells picked so far
-      if(isFull()&&state.phase==='queue') for(const ok of sideKeys(true)){ const O=state[ok]; if(ok===state.activeSide||!O||lockedOut(O)||!O.queue.length) continue; const [a2,b2]=mk(buildPlanMarkers(O,O.queue.length),ok); s+=a2; pv+=b2; }      // (v80) every other ally's plan
-      if(state.mode==='team'&&!isFull()&&(state.phase==='queue'||(state.fbt&&state.phase==='waiting'))){ const ok=MATE[state.activeSide], O=state[ok]; if(O&&!lockedOut(O)){ const n=cur().queue.length, cnt=state.fbt?O.queue.length:(fHuman()?(O.queue.length>n?n+1:0):O.queue.length); if(cnt>0){ const [a2,b2]=mk(buildPlanMarkers(O,cnt),ok); s+=a2; pv+=b2; } } } }
+      if(isFull()&&state.phase==='queue') for(const ok of ownKeys()){ const O=state[ok]; if(ok===state.activeSide||!O||lockedOut(O)||!O.queue.length) continue; const [a2,b2]=mk(buildPlanMarkers(O,O.queue.length),ok); s+=a2; pv+=b2; }      // (v80) every other ally's plan
+      if(state.mode==='team'&&!isFull()&&state.phase==='queue'){ const ok=MATE[state.activeSide], O=state[ok]; if(O&&!lockedOut(O)){ const cnt=O.queue.length; if(cnt>0){ const [a2,b2]=mk(buildPlanMarkers(O,cnt),ok); s+=a2; pv+=b2; } } } }
     if(counterPend) for(const m of cPend){      // the Counter being planned right now
       const[x,y]=dcoord(m.cell);
       s+=`<polygon points="${hexPoints(x,y,33)}" fill="${m.kind==='counter'?'rgba(240,200,30,.34)':'rgba(200,50,50,.28)'}" pointer-events="none"></polygon>`;
@@ -8935,7 +9001,7 @@ function render(){
   const isFbSetup=state.phase==='fbSetup';
   const isCustom=state.phase==='custom';
   const isSim=state.mode==='sim'||(state.mode==='team'&&!!state.sim&&state.phase!=='teamSetup'), isSimSetup=isSim&&state.phase==='simSetup';
-  const isTeamUI=state.mode==='team'&&(state.phase==='teamMenu'||state.phase==='teamSetup');
+  const isTeamUI=state.mode==='team'&&state.phase==='teamSetup';
   const showNormal=!isPass&&!isIdentity&&!isFbSetup&&!isCustom&&!isSim&&!isTeamUI;
   document.getElementById('actBtns').style.display=showNormal?'':'none';
   { const pr=document.getElementById('packRow'), pf=document.getElementById('packFlower'); if(pr&&!showNormal) pr.style.display='none'; if(pf&&!showNormal) pf.style.display='none'; }
@@ -8951,7 +9017,7 @@ function render(){
   document.getElementById('simPanel').style.display=isSimSetup?'block':'none';
   document.getElementById('simRunPanel').style.display=(isSim&&!isSimSetup)?'block':'none';
   document.getElementById('teamPanel').style.display=isTeamUI?'block':'none';
-  if(isTeamUI){ document.getElementById('teamMenu').style.display=state.phase==='teamMenu'?'':'none'; document.getElementById('teamSetup').style.display=state.phase==='teamSetup'?'':'none'; if(state.phase==='teamSetup') renderTeam(); }
+  if(isTeamUI){ document.getElementById('teamSetup').style.display=state.phase==='teamSetup'?'':'none'; if(state.phase==='teamSetup') renderTeam(); }
   if(isSimSetup) renderSim(); else if(isSim) renderSimRun();
   menuRender();      // 🏠 the main menu (its windows over the autoplay)
   backBtnUpdate();
@@ -9008,7 +9074,7 @@ function render(){
     else document.getElementById('actBtns').innerHTML=(isMus(cur())?musTop(cur(),cur().queue.map(e=>e.type)):isMage(cur())?mageSlots(cur()).slice(0,4):isBow(cur())?['shot','pin','psn',(isKnife(cur())?'slice':(canSwap(cur())?'swap':'fogarrow'))].map(f0=>(isShotT(state.pending)&&arrFam(state.pending)===arrFam(f0))?state.pending:f0):isRapier(cur())?['pierce',rapKnife(cur())?'cut':'counter','arc','assassinate']:kitTop(cur())?kitTop(cur()):(isPal(cur())||isChamp(cur()))?(isLong(cur())?['slice','slash','whirl','raise']:['slice','slash','arc','raise']):(isLong(cur())?['slice','slash','whirl','whirlwind']:((isAxe(cur())&&hasShield(cur()))?['slice','slash','arc','whirl']:['slice','slash','arc',(isDouble(cur())||isDualAxe(cur()))?'whirlwind':(isRogue(cur())?(isSoloKnife(cur())?'push':'assassinate'):'whirl')]))).map((t,i)=>(i===3&&canSwap(cur())&&!isBow(cur()))?'swap':((i===3&&hasKnifeOff(cur())&&!kitTop(cur()))?'cut':t)).concat([defendVariant(),dodgeVariant(),'move']).map((t,i)=>(i===3&&state.mode==='team'&&carryAt(cur(),cur().queue.length))?'drop':t).map(t=>mkBtn(t)).join('')+last;
     { const mr=document.getElementById('musRow'), on=isMus(cur())&&state.phase==='queue'; if(mr){ mr.style.display=on?'':'none'; if(on) mr.innerHTML=`<button class="ctrl ${MUS_BOT?'green':'gray'}" onclick="musBotToggle()" title="On: after End Turn the bot plays your Hum / Recite / Rehearse notes for you at 60 % accuracy. Off: you play them yourself.">🤖 60 % bot plays my notes: ${MUS_BOT?'ON':'OFF'}</button>`; } }      // 🎼
     const qrow=U=>[0,1,2].map(i=>{ const a=U.queue[i]; if(!a)return `<span>${i+1}. —</span>`; const t=a.target?('→'+a.target+(a.target2?'/'+a.target2:'')+(a.target3?' + '+a.target3+(a.target4?'/'+a.target4:''):'')):''; const pa=i>0&&U.queue[i-1].alt!==undefined?U.queue[i-1].alt:!!U.alt, sw=a.alt!==undefined&&!!a.alt!==!!pa?'<span title="switches weapon first (free)">🔄</span>':''; return `<span>${i+1}. ${sw}${a.ic&&a.nm?a.ic+' '+a.nm:(a.type==='swap'&&a.to?swapIc(a.to)+' '+swapNm(a.to):tIcon(U,a.type)+' '+tName(U,a.type))}${(a.type==='defend'||a.type==='cdefend'||a.type==='dhook')&&a.level>1?'×'+a.level:''}${t}</span>`; }).join('');
-    document.getElementById('queue').innerHTML=(state.mode==='team'&&(state.F||(state.fbt&&state[MATE[state.activeSide]])))?(isFull()?[state.activeSide,...sideKeys(true).filter(k=>k!==state.activeSide)]:[state.activeSide,MATE[state.activeSide]]).filter(k=>state[k]).map(k=>`<div style="flex:0 0 100%;display:flex;flex-wrap:wrap;gap:4px 12px"><b>${sideEmoji(k)}</b>${qrow(state[k])}</div>`).join(''):qrow(cur());
+    document.getElementById('queue').innerHTML=(state.mode==='team'&&(isFull()?ownKeys().length>1:!!state.F))?(isFull()?[state.activeSide,...ownKeys().filter(k=>k!==state.activeSide)]:[state.activeSide,MATE[state.activeSide]]).filter(k=>state[k]).map(k=>`<div style="flex:0 0 100%;display:flex;flex-wrap:wrap;gap:4px 12px"><b>${sideEmoji(k)}</b>${qrow(state[k])}</div>`).join(''):qrow(cur());
     if(state.adv&&state.adv.free) document.getElementById('queue').innerHTML='';      // 🧭 (v67) no queue in free mode    { const ct=document.getElementById('ctrls'); if(ct) ct.style.display=(showNormal&&!(state.adv&&state.adv.free))?'':'none'; }
     packUI();      // 💼 (v62) · (v64) its button at the end of the queue row, the battle flower under it
     document.getElementById('undoBtn').disabled=state.phase!=='queue'||(cur().queue.length===0&&!(craftUndoable(cur())&&!(cur().craft.rec.length>=2&&!cur().craft.spell))&&!((isMage(cur())||isMus(cur()))&&(state.dpicks||[]).length));
@@ -9022,7 +9088,10 @@ function render(){
   { const mb=document.getElementById('mapBtn'); if(mb){ mb.textContent='🗺️ Load Room'; mb.disabled=replaying||!!state.fbt||state.mode==='fb'||!!state.adv; } }
   { const cb=document.getElementById('custBtn'); if(cb){ cb.style.display='none';      // (v64) no Customize in battle: the 💼 Backpack opens the gear flower
   cb.disabled=replaying; cb.className='ctrl '+((state.phase==='custom'&&state._custInline)?'green':'gray'); } }
-  { const eb=document.getElementById('exitBtn'); if(eb) eb.style.display=((state.fbt&&state.phase!=='teamSetup')||(state.mode==='fb'&&state.mySide))?'':'none'; document.getElementById('newGameBtn').style.display=state.fbt?'none':''; }
+  { const eb=document.getElementById('exitBtn'); if(eb) eb.style.display=((state.fbt&&state.phase!=='teamSetup')||(state.mode==='fb'&&state.mySide))?'':'none'; }
+  { const nb=document.getElementById('newGameBtn'), onl=!!state.fbt||(state.mode==='fb'&&!!state.mySide), ob=document.getElementById('overNewBtn'), oc=document.getElementById('overCustBtn');      // 🔁 (v86) online: Rematch instead of New Game (once the fight is over)
+    nb.style.display=(state.fbt&&state.phase==='teamSetup')?'none':''; nb.textContent=onl?'🔁 Rematch':'🔄 New Game'; nb.title=onl?'Play again in this room with the same seats — you can change your gear first':''; if(onl) nb.disabled=replaying||!state.over||!!state.leftMsg;
+    if(ob){ ob.textContent=onl?'🔁 Rematch':'New Game'; ob.disabled=onl&&!!state.leftMsg; } if(oc) oc.style.display=onl?'none':''; }
   const ra=document.getElementById('replayAllBtn');
   ra.textContent=replaying?'⏹ Stop replay':'🎬 Replay battle';
   ra.disabled=!(replaying||(idle&&HIST.length));
@@ -9037,7 +9106,7 @@ function render(){
   else if(state.phase==='waiting') turnText=state.fbt?fbtWaitText():'Submitted — waiting for '+sideName(other(state.mySide))+'…';
   else if(state.phase==='pass') turnText='Pass the device to '+sideEmoji(state.activeSide)+' '+sideName(state.activeSide);
   else if(state.phase==='resolving'||state.anim) turnText='Turn '+state.turn+' — resolving...';
-  else if(isTeamUI) turnText=state.phase==='teamMenu'?'🤼 Team Mode':(state.fbt?'🌐 Online lobby — '+FBT_NAME[state.fbt.kind]:'🤼 Team Mode — set up the battle');
+  else if(isTeamUI) turnText=state.fbt?'🌐 Online lobby — 👥 Team Mode '+sideKeys(true).length+' vs '+sideKeys(false).length:(state.sim?'🧪 Team simulation — set up the battle':'👥 Full Team — set up the battle');
   else if(state.mode==='team'&&(state.fbt?cur():state.P).kd&&state.phase==='queue') turnText='🌀 You are knocked down — just lock in to continue';
   else if(isIdentity||isFbSetup) turnText='';
   else turnText='Turn '+state.turn+' — '+sideEmoji(state.activeSide)+' '+sideName(state.activeSide)+': queue your 3 actions';
@@ -9056,21 +9125,15 @@ function render(){
 
   document.getElementById('overPanel').style.display=(over&&!replaying&&!isCustom&&!isSim)?'block':'none';
   if(typeof DEV!=="undefined"&&DEV.on&&DEV.lt!==state.turn+':'+state.phase+':'+state.mode){ DEV.lt=state.turn+':'+state.phase+':'+state.mode; devRender(); }      // 🛠 the DevTool panel follows the turns
-  if(over)document.getElementById('overMsg').textContent=state.leftMsg?state.leftMsg:(state.fbt&&state.mode==='team')?fbtOverText():state.mode==='team'?(state.winner==='draw'?'Draw!':(state.winner==='foe'?(state.E.boss?(state.E2&&state.E2.boss?'The Bosses win!':'The Boss wins!'):(state.F?'The enemy team wins!':'The Bots win!')):(state.F?'Your team wins!':sideName('P')+' wins!'))):((isDead(state.P)&&isDead(state.E))?'Draw!':(isDead(state.P)?sideName('E')+' wins!':sideName('P')+' wins!'));
+  if(over)document.getElementById('overMsg').textContent=state.leftMsg?state.leftMsg:(state.fbt&&state.mode==='team')?fbtOverText():state.mode==='team'?teamOverText(true):((isDead(state.P)&&isDead(state.E))?'Draw!':(isDead(state.P)?sideName('E')+' wins!':sideName('P')+' wins!'));
+  if(over&&state.rmNote) document.getElementById('overMsg').textContent+=' '+state.rmNote;      // 🔁 (v86)
 }
 
 // ======================= 🤼 Team Mode =======================
-const TEAM_DEF={'1v2':{P:'K',E:'A',E2:'C'},'2v2':{P:'J',F:'L',E:'A',E2:'C'},'2vb':{P:'G',F:'I',E:'E'},'2v2b':{P:'J',F:'L',E:'A',E2:'C'}};
-const BOSS2_MAIN=['sword','axe','long'], BOSS2_OFF=['shield','sword','axe',null], BOSS2_ARMOR=['medium','heavy','jugg'];
-function bossGear2(g1){      // 👿👿 (v55) the second Boss: a random blade loadout, never the first Boss's weapons
-  for(let i=0;i<40;i++){ const pk=a=>a[Math.floor(Math.random()*a.length)], m=pk(BOSS2_MAIN), g=cleanGear({cls:'knight',main:m,off:m==='long'?null:pk(BOSS2_OFF),armor:pk(BOSS2_ARMOR),boots:'armored'});
-    if(g.main!==g1.main||(g.off||null)!==(g1.off||null)) return g; }
-  return cleanGear({cls:'knight',main:'axe',off:'axe',armor:'heavy',boots:'armored'}); }
-const TEAM={kind:'1v2',gear:{P:null,F:{...DEFAULT_GEAR},E:{...DEFAULT_GEAR},E2:{...DEFAULT_GEAR}},slot:{P:null,F:null,E:null,E2:null},note:{P:'',F:'',E:'',E2:''}};
-try{ const tv=JSON.parse(localStorage.getItem('hexduel_team')||'null'); if(tv){ for(const k of ['F','E','E2']) if(tv[k]) TEAM.gear[k]=cleanGear(tv[k]); if(tv.fEmoji) TEAM.fEmoji=tv.fEmoji; } }catch(e){}
-function saveTeam(){ if(TEAM.kind==='full'){ saveFull(); return; } try{ localStorage.setItem('hexduel_team',JSON.stringify({F:TEAM.gear.F,E:TEAM.gear.E,E2:TEAM.gear.E2,fEmoji:TEAM.fEmoji})); }catch(e){} }
+// (v86) the older team formats (1 vs 2 · 2 vs 2 · 2 vs Boss · 2 vs 2 Bosses, offline and online) are gone: 👥 Full Team Mode covers them all (a 👿 Boss is a gear pick for a team Bot)
+const TEAM={kind:'full',gear:{P:null},note:{}};
 const cloneU=u=>JSON.parse(JSON.stringify(u));
-// 👥 (v80) Full Team Mode: up to 6 pawns a side — your team P, F, F2…F5 · the enemy E, E2…E6 (the older team modes only ever use P / F / E / E2)
+// 👥 (v80) Full Team Mode: up to 6 pawns a side — your team P, F, F2…F5 · the enemy E, E2…E6 (Adventure still uses P / F / E / E2…)
 const ALLY_KEYS=['P','F','F2','F3','F4','F5'], FOE_KEYS=['E','E2','E3','E4','E5','E6'], FULL_MAX=6;
 const FULL_TINT={F:'hue-rotate(110deg) saturate(1.4)',F2:'hue-rotate(160deg) saturate(1.4)',F3:'hue-rotate(60deg) saturate(1.6)',F4:'hue-rotate(200deg) saturate(1.3)',F5:'hue-rotate(250deg) saturate(1.3)',
   E:'sepia(1) saturate(6) hue-rotate(-40deg)',E2:'invert(1)',E3:'sepia(1) saturate(5) hue-rotate(10deg)',E4:'hue-rotate(290deg) saturate(1.8)',E5:'grayscale(1) brightness(.75)',E6:'sepia(1) saturate(3) hue-rotate(250deg)'};
@@ -9080,12 +9143,20 @@ function sideKeys(ally){ return state?(ally?ALLY_KEYS:FOE_KEYS).filter(k=>state[
 function tkeys(){ if(!state) return ['P','E']; return [...sideKeys(true),...sideKeys(false)]; }
 const allyHuman=k=>k==='P'||!!(state&&state[k]&&teamA(k)&&!state.fbt&&state[k].emoji!=='🤖'&&!state[k].advAlly);      // (v80) an ally with any pawn but the robot is yours to plan
 const humanAllies=()=>sideKeys(true).filter(allyHuman), botAllies=()=>sideKeys(true).filter(k=>!allyHuman(k));
+// (v86) "my" team: online you may sit on either team
+const myTeamA=()=>!(state&&state.fbt)||teamA(fbtPrimary());
+const ownKeys=()=>sideKeys(myTeamA()), foeKeys=()=>sideKeys(!myTeamA());
+const ctlKeys=()=>state&&state.fbt?fbtOwned():humanAllies();      // the pawns you plan for
+function teamOverText(mineA){ const w=state.winner; if(w==='draw'||!w) return 'Draw!';
+  const won=(w==='ally')===mineA, my=sideKeys(mineA), th=sideKeys(!mineA), nb=th.filter(k=>state[k].boss).length;
+  if(won) return my.length>1?'Your team wins! 🎉':(state.fbt?'You win! 🎉':sideName(my[0])+' wins!');
+  return (nb&&nb===th.length)?(nb>1?'The Bosses win!':'The Boss wins!'):(th.length>1?'The enemy team wins!':sideName(th[0])+' wins!'); }
 const liveU=U=>!U.kd&&!isDead(U);
-const fHuman=()=>!!(state&&state.F&&!state.fbt&&state.F.emoji!=='🤖'&&!state.F.advAlly);      // Friend with any pawn other than the robot is controlled by you (v73: 🐸 Clow is always a Bot)
 // 🎨 (v73) ONE source for a pawn's colour: the board, the HUD name icon, the queue strip and every replay ask tintOf. A unit may carry its own U.tint (Adventure units always do, set when made), so a pawn keeps its colour however the slots shift; otherwise the Team rules apply
 function tintOf(S,st){ const U=st||(state&&state[S]), own=[st,state&&state[S]].find(u=>u&&typeof u.tint==='string'), b=fxCss(fxOf(S));
   if(own) return (b+own.tint).trim(); if(state&&state.adv) return b.trim();
-  if(isFull()){ const t=FOE_KEYS.includes(S)?FULL_TINT[S]:((U&&U.emoji==='🤖')?FULL_TINT[S]:''); return (b+(t||'')).trim(); }      // 👥 (v80) a colour per slot (Bot allies too)
+  if(isFull()&&U&&U.boss){ const bs=sideKeys(teamA(S)).filter(k=>state[k]&&state[k].boss); return (b+(bs.indexOf(S)>0?'hue-rotate(80deg) saturate(1.6)':'')).trim(); }      // 👿 (v86) the first Boss of a team in its own colour, the others red
+  if(isFull()){ const t=(U&&U.emoji==='🤖')?FULL_TINT[S]:''; return (b+(t||'')).trim(); }      // 👥 (v80) a colour per Bot slot · (v86) a player's own pawn is never painted
   return (b+(S==='E2'?(U&&U.boss?'hue-rotate(80deg) saturate(1.6)':'invert(1)'):((S==='E'&&state.E2&&!(U&&U.boss))?'sepia(1) saturate(6) hue-rotate(-40deg)':''))).trim(); }
 function emojiFilter(S){ return tintOf(S); }
 function emojiHTML(S){ const f=emojiFilter(S); return f?`<span style="filter:${f}">${sideEmoji(S)}</span>`:sideEmoji(S); }
@@ -9108,6 +9179,19 @@ function mateOf(U){ if(!state||state.mode!=='team'||!U) return null; const k=key
   const pp=plannedPosOf(U); return ms.slice().sort((a,b)=>((DIST[pp]||{})[a.pos]??99)-((DIST[pp]||{})[b.pos]??99))[0]; }
 function matesOf(U){ const k=state&&keyOf(U); if(!k) return []; return sideKeys(teamA(k)).filter(x=>x!==k).map(x=>state[x]); }      // (v80) every other pawn of its team
 function lockedOut(U){ return !!U.kd&&!(U.queue||[]).some(e=>e.type==='dropped'&&e.active); }
+// 🌀 (v86) Knocked down: −0.25 max HP every action on the ground; after 3 calm actions (no blow, not moved) +0.25 HP per action too · 👥 Picked Up: +0.5 HP per action, no max HP lost
+const KD_DRAIN=0.25, KD_CALM=3, PU_MEND=0.5;
+function kdTimes(U){      // the actions left if nothing disturbs it: {wait, mend} (white: until the mending starts · green: until it is above 0 HP) or {die}
+  if(!U||isDead(U)) return null;
+  const left=(hp,step)=>hp>0?0:Math.floor(-hp/step+1e-9)+1;
+  if(U.pu) return {wait:0,mend:left(U.hp,PU_MEND)};
+  if(!U.kd) return null;
+  const wait=Math.max(0,KD_CALM-(U.kdCalm||0)), mend=left(U.hp,KD_DRAIN), die=Math.max(1,Math.ceil(U.maxHp/KD_DRAIN-1e-9));
+  return die<=wait+mend?{die}:{wait,mend};
+}
+function kdTimerHTML(U){ const T=kdTimes(U); if(!T) return '';
+  if(T.die) return ` <span class="kdt die" title="Dies in ${T.die} action${T.die>1?'s':''} unless an ally picks it up">☠️${T.die}</span>`;
+  return (T.wait?` <span class="kdt" style="color:#fff" title="Actions until it starts to mend">⏳${T.wait}</span>`:'')+(T.mend?` <span class="kdt" style="color:#4fd98a" title="Actions of mending until it is above 0 HP">💚${T.mend}</span>`:` <span class="kdt" style="color:#4fd98a" title="Ready to fight again once set down">✔</span>`); }
 function carryAt(U,n){ if(!state||state.mode!=='team'||!U) return false; let c=!!U.carry; const q=U.queue||[]; for(let i=0;i<Math.min(n,q.length);i++){ if(q[i].type==='drop') c=false; else if(q[i].pickup) c=true; } return c; }
 function canPickAt(U,cell){ if(isFull()) return matesOf(U).some(M=>canPickM(U,M,cell)); return canPickM(U,mateOf(U),cell); }      // (v80 any downed ally)
 function canPickM(U,M,cell){ return !!(M&&!M.boss&&!U.boss&&M.kd&&!M.pu&&!isDead(M)&&M.pos===cell&&!carryAt(U,U.queue.length)&&!(M.queue||[]).length); }
@@ -9139,9 +9223,8 @@ function openTeam(){
   if(state&&state.menu) MENU.ret=MENU.stack.slice();
   leaveOnline(); if(fbPollId){ clearInterval(fbPollId); fbPollId=null; }
   SIM.run++; lastMode='team'; HIST=[];
-  teamBuild('1v2'); state.phase='teamMenu'; render();
+  fullBuild(); state.phase='teamSetup'; render();      // (v86) Team = the Full Team setup straight away
 }
-function teamPick(kind){ teamBuild(kind); state.phase='teamSetup'; render(); }
 // ======================= 👥 (v80) Full Team Mode: any number a side =======================
 const THREE_ROOM={name:'Three Players room',cells:{A:[0,0],B:[-1,1],C:[-1,0],D:[0,-1],E:[1,-1],F:[1,0],G:[0,1],H:[-1,-1],I:[0,-2],J:[1,-2],K:[-1,-2],L:[0,-3],M:[1,-3],N:[-2,1],O:[-2,0],P:[-2,-1],Q:[2,-1],R:[2,-2],S:[2,-3],T:[-2,-2],U:[-1,-3],V:[1,-4],W:[2,-4],X:[2,0],Y:[1,1],Z:[-1,2],A1:[-2,2],B1:[-3,2],C1:[-3,1],D1:[-3,0],E1:[-3,-1],F1:[0,-4],G1:[0,2],H1:[3,-1],I1:[3,-2],J1:[3,-3],K1:[3,-4]},
   spawns:{P:'G',E:'L',F:'X',E2:'W'},areas:[],
@@ -9149,7 +9232,7 @@ const THREE_ROOM={name:'Three Players room',cells:{A:[0,0],B:[-1,1],C:[-1,0],D:[
     E:{1:['L'],2:['L','W'],3:['L','W','T'],4:['U','V','T','W'],5:['L','W','T','U','V'],6:['L','W','T','U','V','F1']}}};      // the enemy: the same, mirrored top ↔ bottom
 const FULL_ROOMS=['auto','big','three'];
 TEAM.full={nA:1,nE:2,room:'auto',gear:{},emoji:{}};
-try{ const fv=JSON.parse(localStorage.getItem('hexduel_full')||'null'); if(fv){ TEAM.full.nA=Math.max(1,Math.min(FULL_MAX,+fv.nA||1)); TEAM.full.nE=Math.max(1,Math.min(FULL_MAX,+fv.nE||2)); TEAM.full.room=fv.room||'auto'; for(const k of Object.keys(fv.gear||{})) TEAM.full.gear[k]=cleanGear(fv.gear[k]); TEAM.full.emoji=fv.emoji||{}; } }catch(e){}
+try{ const fv=JSON.parse(localStorage.getItem('hexduel_full')||'null'); if(fv){ TEAM.full.nA=Math.max(1,Math.min(FULL_MAX,+fv.nA||1)); TEAM.full.nE=Math.max(1,Math.min(FULL_MAX,+fv.nE||2)); TEAM.full.room=fv.room||'auto'; BOSS_OK++; try{ for(const k of Object.keys(fv.gear||{})) TEAM.full.gear[k]=cleanGear(fv.gear[k]); } finally { BOSS_OK--; } TEAM.full.emoji=fv.emoji||{}; } }catch(e){}
 TEAM.fsel={A:null,E:null};
 function saveFull(){ const FT=TEAM.full; for(const k of [...ALLY_KEYS.slice(1),...FOE_KEYS]) if(TEAM.gear[k]) FT.gear[k]=TEAM.gear[k]; try{ localStorage.setItem('hexduel_full',JSON.stringify(FT)); }catch(e){} }
 function fullRoomFor(FT){ const ch=FT.room||'auto';
@@ -9162,20 +9245,32 @@ function fullSpawns(R,aK,eK){      // the room's spawn sets for this many pawns 
   const S=R.spawnSets, sp={};
   if(S&&S.A&&S.A[aK.length]&&S.E&&S.E[eK.length]){ aK.forEach((k,i)=>sp[k]=S.A[aK.length][i]); eK.forEach((k,i)=>sp[k]=S.E[eK.length][i]); if(Object.values(sp).every(c=>POS[c])) return sp; }
   return roomSpawns(R,[...aK,...eK]); }
-function fullBuild(){
-  const FT=TEAM.full, saved=getSavedIdentity(), st=blankState0('team',true); st.kind='full'; TEAM.kind='full';
-  const R=fullRoomFor(FT); setMap(R); st.room=R; st.areas=roomAreas(R); st.areaSeq=500;
-  const aK=ALLY_KEYS.slice(0,FT.nA), eK=FOE_KEYS.slice(0,FT.nE);
+function fullBuild(){ const FT=TEAM.full; fullBuildWith(FT.nA,FT.nE,fullRoomFor(FT),FT); }
+function fullBuildWith(nA,nE,R,FT){      // (v86) also the online lobby: its counts and room come from the room document, the gear from the seats
+  const saved=getSavedIdentity(), st=blankState0('team',true); st.kind='full'; TEAM.kind='full';
+  setMap(R); st.room=R; st.areas=roomAreas(R); st.areaSeq=500;
+  const aK=ALLY_KEYS.slice(0,nA), eK=FOE_KEYS.slice(0,nE);
   delete st.E; for(const k of [...aK,...eK]) st[k]=freshSide('A');
   const sp=fullSpawns(R,aK,eK); for(const k of [...aK,...eK]) st[k].pos=sp[k];
-  TEAM.gear.P=getSavedGear(); TEAM.slot={}; TEAM.note={};
-  for(const k of [...aK.slice(1),...eK]) TEAM.gear[k]=cleanGear(FT.gear[k]||{...DEFAULT_GEAR});
-  st.P.name=(saved&&saved.name)||defName('P'); st.P.emoji=(saved&&saved.emoji&&saved.emoji!=='🤖'&&saved.emoji!==BOSS_EMOJI)?saved.emoji:'🌞';
-  aK.slice(1).forEach((k,i)=>{ const e=FT.emoji[k]; st[k].name='Ally '+(i+2); st[k].emoji=(e&&e!==BOSS_EMOJI&&(e==='🤖'||e!==st.P.emoji))?e:'🤖'; });
-  eK.forEach((k,i)=>{ st[k].name='Bot '+(i+1); st[k].emoji='🤖'; });
-  for(const k of [...aK,...eK]){ const U=st[k]; U.gear=cleanGear(TEAM.gear[k]); initArmor(U); U.canNeg=true; U.kd=false; U.kdCalm=0; if(k!=='P') U.hp=U.maxHp=U.baseHp=6+(U.clsHp||0); }
+  TEAM.gear.P=getSavedGear(); TEAM.note={};
+  BOSS_OK++; try{
+    for(const k of [...aK.slice(1),...eK]) TEAM.gear[k]=cleanGear((FT&&FT.gear[k])||{...DEFAULT_GEAR});
+    st.P.name=(saved&&saved.name)||defName('P'); st.P.emoji=(saved&&saved.emoji&&saved.emoji!=='🤖'&&saved.emoji!==BOSS_EMOJI)?saved.emoji:'🌞';
+    aK.slice(1).forEach((k,i)=>{ const e=FT&&FT.emoji[k]; st[k].name='Ally '+(i+2); st[k].emoji=(e&&e!==BOSS_EMOJI&&(e==='🤖'||e!==st.P.emoji))?e:'🤖'; });
+    for(const k of [...aK,...eK]){ st[k].gear=cleanGear(TEAM.gear[k]); fullUnitInit(st[k],k); }
+  } finally { BOSS_OK--; }
+  fullFoeNames(st); fullBossHp(st);
   for(const t of ['A','E']){ const s=TEAM.fsel[t]; if(s&&!st[s.k]) TEAM.fsel[t]=null; }
   state=st; }
+function fullUnitInit(U,k){ initArmor(U);
+  if(U.boss){ U.canNeg=false; U.kd=undefined; }      // 👿 a Boss never goes down: a Last Breath instead
+  else { U.canNeg=true; U.kd=false; U.kdCalm=0; if(k!=='P') U.hp=U.maxHp=U.baseHp=6+(U.clsHp||0); } }
+function fullFoeNames(st){ let b=0, n=0;      // enemy Bots: 'Bot 1', 'Bot 2'… · Bosses: 'Boss', 'Red Boss', 'Boss 3'…
+  for(const k of FOE_KEYS){ const U=st[k]; if(!U) continue; if(st.fbt&&st.fbt.doc.seat[k]&&st.fbt.doc.seat[k].id) continue;
+    if(U.boss){ U.name=b===0?'Boss':(b===1?'Red Boss':'Boss '+(b+1)); U.emoji=BOSS_EMOJI; b++; } else { n++; U.name='Bot '+n; U.emoji='🤖'; } } }
+const BOSS_SOLO_HP=20;      // 👿 (the old 2 vs Boss) a Boss alone against two or more pawns
+function fullBossHp(st){ for(const ally of [true,false]){ const ks=(ally?ALLY_KEYS:FOE_KEYS).filter(k=>st[k]), os=(ally?FOE_KEYS:ALLY_KEYS).filter(k=>st[k]);
+  for(const k of ks){ const U=st[k]; if(U.boss) U.hp=U.maxHp=U.baseHp=(ks.length===1&&os.length>=2)?BOSS_SOLO_HP:BOSS_HP; } } }
 function fullAdd(ally){ const FT=TEAM.full; if(ally){ if(FT.nA>=FULL_MAX) return; FT.nA++; } else { if(FT.nE>=FULL_MAX) return; FT.nE++; } saveFull(); fullBuild(); state.phase='teamSetup'; render(); }
 function fullRemove(S){ const FT=TEAM.full, list=teamA(S)?ALLY_KEYS:FOE_KEYS, n=teamA(S)?FT.nA:FT.nE, i=list.indexOf(S); if(i<1&&teamA(S)) return; if(n<=1) return;
   saveFull(); for(let j=i;j<n-1;j++){ const a=list[j], b=list[j+1]; FT.gear[a]=FT.gear[b]||{...DEFAULT_GEAR}; if(teamA(S)) FT.emoji[a]=FT.emoji[b]; }      // the pawns after it move up a place
@@ -9188,7 +9283,7 @@ function teamFlowerSVG(S,sel){      // the 7-hex gear flower of one pawn (sel = 
   const icon={cls:g.pboss?'👿':g.cls==='paladin'?palIcon(g):(g.cls==='rogue'?'♠️':(g.cls==='berserk'?'🌋':'⚔️')),main:g.main==='knife'?'🔪':g.main==='rapier'?'🪡':(sbow(g.main)?'🏹':g.main==='lbow'?'🏹➕':(g.main==='axe'?'🪓':'🗡️')),off:g.off==='knife'?'🔪':g.off==='bow'?'🏹':g.off==='xbow'?'🏹🏹':(lng&&g.cls!=='paladin')?'❌':g.off==='boom'?'🪃':g.off==='shield'?'🛡️':(g.off==='sword'?'🗡️':(g.off==='axe'?'🪓':'❌')),armor:g.armor==='none'?'❌':ARMOR[g.armor].icon}; icon.boots=bootIcon(g); if(g.cls==='musician'){ icon.cls='👩‍🎤'; icon.main=MUS_ICON[g.main]||'🪕'; } if(g.cls==='mage') Object.assign(icon,mageIcon(g));
   let svg='';
   for(const [k,dx,dy,sl0] of CUST_HEX){
-    const sl=custSl(g,k,sl0), x=115+dx,y=106+dy, click=!!sl&&(sl!=='emoji'||(teamA(S)&&S!=='P')||S==='P'), on=click&&sel===sl;
+    const sl=custSl(g,k,sl0), x=115+dx,y=106+dy, click=!!sl&&(state.fbt?(sl==='emoji'?fbtCanEmoji(S):fbtCanGear(S)):(sl!=='emoji'||(teamA(S)&&!state.sim))), on=click&&sel===sl;
     svg+=`<polygon class="ch${click?'':(sl==='emoji'?' plain':' lock')}${on?' sel':''}" points="${hexPoints(x,y,34)}" ${click?`onclick="teamSlot('${S}','${sl}')"`:''}></polygon>`;
     svg+=mageBadge(g,sl,x,y);
     if(sl==='emoji') svg+=`<text x="${x}" y="${y+9}"${emojiFilter(S)?` style="filter:${emojiFilter(S)}"`:''}>${sideEmoji(S)}</text>`;
@@ -9196,36 +9291,23 @@ function teamFlowerSVG(S,sel){      // the 7-hex gear flower of one pawn (sel = 
   }
   return svg; }
 function renderFullTeam(row){
-  const FT=TEAM.full; let html='';
+  const FT=TEAM.full, F=state.fbt, host=!F||F.doc.host===F.me, myA=myTeamA(); let html='';
   for(const ally of [true,false]){
-    const ks=sideKeys(ally), n=ks.length, w=Math.round(230*(n<=2?0.78:n===3?0.62:n===4?0.5:n===5?0.42:0.36)), t=ally?'A':'E', sel=TEAM.fsel[t];
-    html+=`<div class="fullTeam ${ally?'fullA':'fullE'}"><div class="fullHead"><b>${ally?'🟢 Your team':'🔴 Enemy team'}</b> · ${n}/${FULL_MAX}${ally?' · 🤖 = Bot ally, any other pawn = you plan it (Tab switches)':''}</div><div class="fullMembers">`;
-    for(const S of ks){ html+=`<div class="fullMem${sel&&sel.k===S?' on':''}" style="width:${w}px"><div class="fullName">${emojiHTML(S)} ${escH(sideName(S))}${(S!=='P'&&n>1)?` <button class="fullX" onclick="fullRemove('${S}')" title="Remove this pawn">✕</button>`:''}</div><svg class="fullSvg" viewBox="0 0 230 212" style="width:${w}px">${teamFlowerSVG(S,sel&&sel.k===S?sel.slot:null)}</svg><div class="fullGear">${fullGearLine(TEAM.gear[S])}</div></div>`; }
-    if(n<FULL_MAX) html+=`<button class="fullAdd" onclick="fullAdd(${ally})" title="Add a pawn to this team (up to ${FULL_MAX})">+</button>`;
+    const ks=sideKeys(ally), n=ks.length, w=Math.round(230*(n<=2?0.78:n===3?0.62:n===4?0.5:n===5?0.42:0.36)), t=ally?'A':'E', sel=TEAM.fsel[t], mine=ally===myA;
+    const head=(state.sim?(ally?'🔵 Team 1':'🔴 Team 2'):(mine?'🟢 Your team':'🔴 Enemy team'))+(F?' (Team '+(ally?1:2)+')':'');
+    const hint=state.sim?'':(F?(mine?' · 🤖 = Bot ally — give it any other pawn and you plan it too':''):(ally?' · 🤖 = Bot ally, any other pawn = you plan it (Tab switches)':' · 👿 Boss is in the Class list'));
+    html+=`<div class="fullTeam ${mine?'fullA':'fullE'}"><div class="fullHead"><b>${head}</b> · ${n}/${FULL_MAX}${hint}</div><div class="fullMembers">`;
+    for(const S of ks){ const rm=F?fbtCanRemove(S):(S!=='P'&&n>1); html+=`<div class="fullMem${sel&&sel.k===S?' on':''}" style="width:${w}px"><div class="fullName">${emojiHTML(S)} ${escH(sideName(S))}${seatTag(S)}${rm?` <button class="fullX" onclick="${F?'fbtRemove':'fullRemove'}('${S}')" title="Remove this pawn">✕</button>`:''}</div><svg class="fullSvg" viewBox="0 0 230 212" style="width:${w}px">${teamFlowerSVG(S,sel&&sel.k===S?sel.slot:null)}</svg><div class="fullGear">${fullGearLine(TEAM.gear[S])}${state[S].boss?' · 👿 '+fmtNum(state[S].maxHp)+' HP':''}</div></div>`; }
+    if(n<FULL_MAX&&host) html+=`<button class="fullAdd" onclick="${F?'fbtAdd':'fullAdd'}(${ally})" title="Add a pawn to this team (up to ${FULL_MAX})">+</button>`;
     html+=`</div><div class="simPick fullPick">${sel&&state[sel.k]?`<div class="sub">${emojiHTML(sel.k)} ${escH(sideName(sel.k))}</div>`+teamPickHTML(sel.k,TEAM.gear[sel.k],sel.slot):'<span class="sub">Tap a hex of a pawn to change it.</span>'}</div></div>`;
   }
-  html+=`<div class="fullHead">🗺️ Room: <b>${escH(fullRoomName(FT))}</b> <button class="ctrl gray" onclick="fullRoomNext()" title="Auto: the big map, the Three Players room from 5 pawns on · then the big map, the Three Players room and your saved rooms">🔁 Change room</button></div>`;
+  const rn=F?(F.doc.roomName||'Big map'):fullRoomName(FT);
+  html+=`<div class="fullHead">🗺️ Room: <b>${escH(rn)}</b>${host?` <button class="ctrl gray" onclick="${F?'fbtRoomNext':'fullRoomNext'}()" title="Auto: the big map, the Three Players room from 5 pawns on · then the big map, the Three Players room and your saved rooms">🔁 Change room</button>`:''}</div>`;
   row.innerHTML=html; TEAM.note={}; }
-function teamBuild(kind){
-  if(kind==='full'){ fullBuild(); return; }
-  kind=kind||'1v2'; TEAM.kind=kind;
-  const big=kind!=='1v2', saved=getSavedIdentity(), def0=TEAM_DEF[kind];
-  const st=blankState('team',big||!OLDMAP); st.kind=kind;
-  const def=st.room?roomSpawns(st.room,Object.keys(def0)):def0;      // 🗺️ a Room: its own spawns (missing ones are filled in)
-  st.P.pos=def.P; st.E.pos=def.E;
-  if(def.E2){ st.E2=freshSide(def.E2); st.E2.pos=def.E2; }
-  if(big){ st.F=freshSide(def.F); st.F.pos=def.F; }
-  TEAM.gear.P=getSavedGear(); TEAM.slot={P:null,F:null,E:null,E2:null}; TEAM.note={P:'',F:'',E:'',E2:''};
-  st.P.name=(saved&&saved.name)||defName('P'); st.P.emoji=(saved&&saved.emoji&&saved.emoji!=='🤖'&&saved.emoji!==BOSS_EMOJI)?saved.emoji:'🌞';
-  st.E.name='Bot 1'; st.E.emoji='🤖'; if(st.E2){ st.E2.name='Bot 2'; st.E2.emoji='🤖'; }
-  if(st.F){ st.F.name='Friend'; st.F.emoji=(TEAM.fEmoji&&TEAM.fEmoji!==st.P.emoji&&TEAM.fEmoji!==BOSS_EMOJI)?TEAM.fEmoji:'🤖'; }
-  for(const k of ['P','F','E','E2']){ const U=st[k]; if(!U) continue; U.gear=cleanGear(TEAM.gear[k]); initArmor(U); if(k!=='P'||big){ U.canNeg=true; U.kd=false; U.kdCalm=0; } if(k!=='P') U.hp=U.maxHp=U.baseHp=6+(U.clsHp||0); }
-  if(kind==='2vb'){ const B=st.E; B.canNeg=false; B.kd=undefined; B.name='Boss'; B.emoji=BOSS_EMOJI; B.boss=true; B.hp=B.maxHp=B.baseHp=20; B.gear={...DEFAULT_GEAR,armor:'heavy'}; initArmor(B); }
-  if(kind==='2v2b'){ for(const [k,nm] of [['E','Boss'],['E2','Red Boss']]){ const B=st[k]; B.canNeg=false; B.kd=undefined; B.name=nm; B.emoji=BOSS_EMOJI; B.boss=true; B.hp=B.maxHp=B.baseHp=BOSS_HP; B.gear=k==='E'?{...DEFAULT_GEAR,armor:'heavy'}:bossGear2(st.E.gear); initArmor(B); } }      // 👿👿 (v55) two Bosses, each with its own Second Phase; the second one in red with random gear
-  state=st;
-}
-function teamReset(){ if(state.fbt) return; if(isFull()){ const sp=fullSpawns(state.room,sideKeys(true),sideKeys(false)); for(const k of tkeys()) state[k].pos=sp[k]; state.teamSel=null; render(); return; } const def=state.room?roomSpawns(state.room,Object.keys(TEAM_DEF[state.kind||'1v2'])):TEAM_DEF[state.kind||'1v2']; for(const k of tkeys()) state[k].pos=def[k]; state.teamSel=null; render(); }
-function teamEmoji(S,e){ if(state.fbt){ fbtEmoji(S,e); return; } if(isFull()&&S!=='P'){ state[S].emoji=e; TEAM.full.emoji[S]=e; saveFull(); TEAM.fsel[teamA(S)?'A':'E']=null; renderTeam(); render(); return; } state[S].emoji=e; if(S==='P'){ const me=getSavedIdentity()||{}; saveIdentity(me.name||'',e); } else { TEAM.fEmoji=e; saveTeam(); } TEAM.slot[S]=null; renderTeam(); render(); }
+function teamReset(){ if(state.fbt) return; const sp=fullSpawns(state.room,sideKeys(true),sideKeys(false)); for(const k of tkeys()) state[k].pos=sp[k]; state.teamSel=null; render(); }
+function teamEmoji(S,e){ if(state.fbt){ fbtEmoji(S,e); return; }
+  state[S].emoji=e; if(S==='P'){ const me=getSavedIdentity()||{}; saveIdentity(me.name||'',e); } else { TEAM.full.emoji[S]=e; saveFull(); }
+  TEAM.fsel[teamA(S)?'A':'E']=null; renderTeam(); render(); }
 function teamSetupClick(cell){
   if(state.fbt) return;
   const keys=tkeys(), occ=keys.find(k=>state[k].pos===cell);
@@ -9236,26 +9318,29 @@ function teamSetupClick(cell){
 function teamStart(){
   if(state.fbt){ fbtHostStart(); return; }
   if(state.sim){ sim2Start(false); return; }
-  saveTeam(); HIST=[]; state.teamSel=null; state.phase='queue'; state.activeSide='P'; state.pending=null;
-  packGive(state.P); if(isFull()){ for(const k of humanAllies()) if(k!=='P') packGive(state[k]); } else if(state.F&&fHuman()) packGive(state.F);      // 💼 (v62)
-  state.log=[isFull()?`👥 Full Team battle begins: ${sideKeys(true).length} vs ${sideKeys(false).length}.`:state.kind==='2v2b'?'🤼 2 vs 2 Bosses begins! 👿👿':state.kind==='2vb'?'🤼 2 vs Boss begins!':(state.F?'🤼 2v2 begins: you + Friend vs Bot 1 + Bot 2.':'🤼 Team battle begins: you vs Bot 1 + Bot 2.')]; render();
+  saveFull(); HIST=[]; state.teamSel=null; state.phase='queue'; state.activeSide='P'; state.pending=null;
+  packGive(state.P); for(const k of humanAllies()) if(k!=='P') packGive(state[k]);      // 💼 (v62)
+  const nb=sideKeys(false).filter(k=>state[k].boss).length;
+  state.log=[`👥 Full Team battle begins: ${sideKeys(true).length} vs ${sideKeys(false).length}${nb?' '+'👿'.repeat(nb):''}.`]; render();
 }
-function teamSlot(S,sl){ if(isFull()){ const t=teamA(S)?'A':'E', cur0=TEAM.fsel[t]; TEAM.fsel[t]=(cur0&&cur0.k===S&&cur0.slot===sl)?null:{k:S,slot:sl}; TEAM.note[S]=''; renderTeam(); return; } TEAM.slot[S]=sl; TEAM.note[S]=''; renderTeam(); }
+function teamSlot(S,sl){ const t=teamA(S)?'A':'E', cur0=TEAM.fsel[t]; TEAM.fsel[t]=(cur0&&cur0.k===S&&cur0.slot===sl)?null:{k:S,slot:sl}; TEAM.note[S]=''; renderTeam(); }
 function teamChoose(S,slot,val){
   if(state.fbt&&!fbtCanGear(S)) return;
   choiceSfx(slot,val);
   const r=applyGearChoice(TEAM.gear[S],slot,val);
   if(r.note){ TEAM.note[S]=r.note; renderTeam(); return; }
-  const g2=r.g; TEAM.gear[S]=g2; state[S].gear=g2; state[S].alt=false; delete state[S].planAlt; initArmor(state[S]);
-  if(state.fbt){ const sd=state.fbt.doc.seat[S]; if(sd&&sd.id===state.fbt.me&&!sd.extra) saveGear(g2); fbtPatchSeat(S,{gear:g2}); }
-  else if(S==='P') saveGear(g2); else saveTeam();
+  const g2=r.g, U=state[S]; TEAM.gear[S]=g2; U.gear=g2; U.alt=false; delete U.planAlt; fullUnitInit(U,S); fullFoeNames(state); fullBossHp(state);
+  if(state.fbt){ const sd=state.fbt.doc.seat[S]; if(sd&&sd.id===state.fbt.me&&!sd.extra) saveGear(g2); fbtPatchSeat(S,fbtSeatLook(S,{gear:g2})); }
+  else if(S==='P') saveGear(g2); else saveFull();
   renderTeam(); render();
 }
+// 👿 (v86) the Boss class: always for an enemy Bot (any Bot in a simulation, any Bot seat online), for your own pawns only while it is unlocked
+const teamBossPick=S=>bossClsOn()||(state.fbt?!(state.fbt.doc.seat[S]&&state.fbt.doc.seat[S].id):(state.sim||!teamA(S)));
 function teamPickHTML(S,g,slot){
   if(TEAM.note[S]) return TEAM.note[S];
   if(slot==='emoji'){ const F=state.fbt, tk=[], offBot=F?!!(F.doc.seat[S]&&(F.doc.seat[S].extra||!F.doc.seat[S].id)):(S!=='P'&&teamA(S)); return '<b>Pawn</b>'+(offBot?' — 🤖 = Bot ally, any other pawn = you control it':'')+'<br>'+(offBot?`<button class="emojiBtn${state[S].emoji==='🤖'?' sel':''}" onclick="teamEmoji('${S}','🤖')">🤖</button>`:'')+EMOJI_SET.map(e=>`<button class="emojiBtn${tk.includes(e)?' taken':''}${e===state[S].emoji?' sel':''}" ${tk.includes(e)?'disabled':''} onclick="teamEmoji('${S}','${e}')">${e}</button>`).join(''); }
   const b=(sl,val,label,cur,dis,tip)=>`<button class="ctrl${cur?' green':' gray'}" ${dis?'disabled':''} ${(sl==='cls'||sl==='main'||(sl==='off'&&val))?'data-snd="1"':''} title="${tip||''}" onclick="teamChoose('${S}','${sl}',${val===null?'null':`'${val}'`})">${label}</button>`;
-  if(slot==='cls') return '<b>Class</b><br>'+b('cls','knight','⚔️ Knight',g.cls==='knight'&&!g.pboss)+b('cls','paladin',palIcon(g)+' '+palName(g),g.cls==='paladin',false,'Paladin: the Great Shield (three-cell Defend, Raise Shield) · Champion: no Great Shield — a normal Shield, a second blade or nothing, Call to Arms')+b('cls','rogue','♠️ Rogue',g.cls==='rogue')+b('cls','berserk','🌋 Berserk',g.cls==='berserk')+b('cls','mage','🧙 Mage',g.cls==='mage')+b('cls','musician','👩‍🎤 Musician',g.cls==='musician')+(bossClsOn()?b('cls','boss','👿 Boss',!!g.pboss,false,'The Boss: 12 HP, +1 SP and a little healing every turn, cannot be shoved, hits twice as hard; at 8 HP the Second Phase (immune to Stagger, no parry against it, cheaper Arc / Swing) — and you may still pick any action'):'');
+  if(slot==='cls') return '<b>Class</b><br>'+b('cls','knight','⚔️ Knight',g.cls==='knight'&&!g.pboss)+b('cls','paladin',palIcon(g)+' '+palName(g),g.cls==='paladin',false,'Paladin: the Great Shield (three-cell Defend, Raise Shield) · Champion: no Great Shield — a normal Shield, a second blade or nothing, Call to Arms')+b('cls','rogue','♠️ Rogue',g.cls==='rogue')+b('cls','berserk','🌋 Berserk',g.cls==='berserk')+b('cls','mage','🧙 Mage',g.cls==='mage')+b('cls','musician','👩‍🎤 Musician',g.cls==='musician')+(teamBossPick(S)?b('cls','boss','👿 Boss',!!g.pboss,false,'The Boss: 12 HP (20 when it is alone against two or more), +1 SP and a little healing every turn, cannot be shoved, hits twice as hard, never knocked down (a Last Breath instead); at 8 HP (12) the Second Phase — immune to Stagger, no parry against it, cheaper Arc / Swing. A second Boss on a team is drawn red'):'');
   if(slot==='main') return mainPickHTML(g,b);
   if(slot==='off') return offPickHTML(g,b);
   if(slot==='armor') return '<b>Armor</b><br>'+armorChoices(g).map(k=>b('armor',k,ARMOR[k].icon+' '+ARMOR[k].name,g.armor===k)).join('');
@@ -9265,29 +9350,14 @@ function teamPickHTML(S,g,slot){
 function renderTeam(){
   const row=document.getElementById('teamRow'); if(!row) return;
   { const cb=document.getElementById('teamCalcBtn'); if(cb) cb.style.display=state.sim?'':'none'; }
-  { const F=state.fbt, sb=document.getElementById('teamStartBtn'), rb=document.getElementById('teamResetBtn'), bb=document.getElementById('teamBackBtn'), sw=document.getElementById('fbtSwitchBtn'), br=document.getElementById('fbtBar'), hp=document.getElementById('teamHelp');
+  { const F=state.fbt, sb=document.getElementById('teamStartBtn'), rb=document.getElementById('teamResetBtn'), bb=document.getElementById('teamBackBtn'), sw=document.getElementById('fbtSwitchBtn'), hp=document.getElementById('teamHelp');
     if(sb){ sb.disabled=!!(F&&F.doc.host!==F.me); sb.textContent=F?(F.doc.host===F.me?'▶ Start battle':'⏳ Waiting for the host to start'):'▶ Start battle'; }
     if(rb) rb.style.display=F?'none':''; if(bb) bb.textContent=F?'🚪 Exit room':'⬅ Back';
-    if(sw){ sw.style.display=(F&&F.kind==='2v2')?'':'none'; if(F&&F.kind==='2v2'){ const k=fbtPrimary(), dest=(teamA(k)?['E','E2']:['P','F']).find(x=>!F.doc.seat[x].id); sw.disabled=!dest; } }
-    if(hp) hp.innerHTML=F?'<b>🌐 Online lobby</b> — tap the hexes of your own pawn to change its gear or pawn. Empty seats are Bots: a Bot teammate becomes yours when you give it any pawn other than 🤖. The host can set the Bots\' gear and starts the battle.':'<b>🤼 Team setup</b> — set gear for every pawn. To change a spawn: tap a pawn on the board, then tap an empty cell.'; }
-  if(isFull()){ const hp=document.getElementById('teamHelp'); if(hp) hp.innerHTML='<b>👥 Full Team setup</b> — add pawns with +, tap a hex of a pawn to change it. To change a spawn: tap a pawn on the board, then tap an empty cell.'; renderFullTeam(row); return; }      // (v80)
-  let html='';
-  for(const S of tkeys()){
-    if(state[S].boss) continue;
-    const g=TEAM.gear[S], slot=TEAM.slot[S], lng=g.main==='long', U=state[S];
-    const icon={cls:g.pboss?'👿':g.cls==='paladin'?palIcon(g):(g.cls==='rogue'?'♠️':(g.cls==='berserk'?'🌋':'⚔️')),main:g.main==='knife'?'🔪':g.main==='rapier'?'🪡':(sbow(g.main)?'🏹':g.main==='lbow'?'🏹➕':(g.main==='axe'?'🪓':'🗡️')),off:g.off==='knife'?'🔪':g.off==='bow'?'🏹':g.off==='xbow'?'🏹🏹':(lng&&g.cls!=='paladin')?'❌':g.off==='boom'?'🪃':g.off==='shield'?'🛡️':(g.off==='sword'?'🗡️':(g.off==='axe'?'🪓':'❌')),armor:g.armor==='none'?'❌':ARMOR[g.armor].icon}; icon.boots=bootIcon(g); if(g.cls==='musician'){ icon.cls='👩‍🎤'; icon.main=MUS_ICON[g.main]||'🪕'; } if(g.cls==='mage') Object.assign(icon,mageIcon(g));
-    let svg='';
-    for(const [k,dx,dy,sl0] of CUST_HEX){
-      const sl=custSl(g,k,sl0), x=115+dx,y=106+dy, click=!!sl&&(state.fbt?(sl==='emoji'?fbtCanEmoji(S):fbtCanGear(S)):(sl!=='emoji'||S==='P'||S==='F')), sel=click&&slot===sl;
-      svg+=`<polygon class="ch${click?'':(sl==='emoji'?' plain':' lock')}${sel?' sel':''}" points="${hexPoints(x,y,34)}" ${click?`onclick="teamSlot('${S}','${sl}')"`:''}></polygon>`;
-      svg+=mageBadge(g,sl,x,y);
-      if(sl==='emoji') svg+=`<text x="${x}" y="${y+9}"${emojiFilter(S)?` style="filter:${emojiFilter(S)}"`:''}>${sideEmoji(S)}</text>`;
-      else svg+=(sl==='main'&&g.main==='xbow')||(sl==='off'&&g.off==='xbow')?xbowIn(x,y+2,26):(sl==='main'&&g.main==='lbow')?`<text x="${x}" y="${y+13}" style="font-size:36px">🏹</text>`:(sl==='main'&&lng)?`<text x="${x}" y="${y+13}" style="font-size:36px">🗡️</text>`:(sl==='off'&&isGreat(g))?`<text x="${x}" y="${y+13}" style="font-size:36px">🛡️</text>`:`<text x="${x}" y="${y+9}">${sl?icon[sl]:'🔒'}</text>`;
-    }
-    const a=ARMOR[g.armor], Ug={gear:g,tier:g.armor};
-    html+=`<div class="simCol"><div class="simTitle">${sideEmoji(S)} ${sideName(S)}${seatTag(S)} — spawn ${U.pos}</div><svg class="simSvg" viewBox="0 0 230 212">${svg}</svg><div class="simPick">${teamPickHTML(S,g,slot)}</div><div class="simSide">${g.cls==='mage'?mageSideHTML(g):g.cls==='musician'?musSideHTML(g):`<div><b>${g.cls==='paladin'?palName(g):(g.cls==='rogue'?'Rogue':(g.cls==='berserk'?'Berserk':'Knight'))}</b> · ${g.main==='knife'?'Knife':(sbow(g.main)?(g.main==='xbow'?'Crossbow':'Shortbow'):g.main==='lbow'?'Longbow':(g.main==='axe'?'Axe':(g.main==='long'?'Longsword':'Sword')))} + ${g.off==='knife'?'Knife':g.off==='bow'?'Shortbow':g.off==='xbow'?'Crossbow':(g.off==='shield'?(isGreat(g)?'Great Shield':'Shield'):(g.off==='sword'?'Sword':(g.off==='axe'?'Axe':'nothing')))} · ${a.name}</div><div>HP ${MAXHP+clsHp(g)} · AP ${a.ap} · ${spGainTxt(Ug)}</div>`}</div></div>`;
-  }
-  row.innerHTML=html; TEAM.note={P:'',F:'',E:'',E2:''};
+    if(sw){ sw.style.display=F?'':'none'; if(F) sw.disabled=!fbtSwitchDest(); }
+    if(hp) hp.innerHTML=F?'<b>🌐 Online lobby — 👥 Team Mode</b> — tap the hexes of your own pawn to change its gear or pawn. Empty seats are Bots: a Bot teammate becomes yours when you give it any pawn other than 🤖. The host adds / removes pawns, picks the room, sets the Bots\' gear (👿 Boss too) and starts the battle.'
+      :(state.sim?'<b>🧪 Team simulation</b> — every pawn is an AI. Add pawns with +, tap a hex of a pawn to change it. To change a spawn: tap a pawn on the board, then tap an empty cell.'
+      :'<b>👥 Full Team setup</b> — add pawns with +, tap a hex of a pawn to change it. To change a spawn: tap a pawn on the board, then tap an empty cell.'); }
+  renderFullTeam(row);
 }
 // ---- planning ----
 const planPosSimple=U=>{ let p=U.pos; for(const a of (U.queue||[])) if(MOVEY.includes(a.type)&&a.target) p=a.target; return p; };
@@ -9303,7 +9373,7 @@ function teamCtx(k){
 // Friend Bot: plans exactly as many actions as the player has queued (it sees the player's action first, the player then sees its action)
 function friendSync(n){
   if(isFull()){ fullBotSync(n); return; }      // (v80)
-  const F=state.F; if(!F||fHuman()) return; if(state.adv&&F.advAlly&&!F.clow&&F.drink!=null&&(F.pack||[])[F.drink]&&F.queue.length<n){ botPush('F','item'+F.drink); F.drink=null; }      // (v77)
+  const F=state.F; if(!F) return; if(state.adv&&F.advAlly&&!F.clow&&F.drink!=null&&(F.pack||[])[F.drink]&&F.queue.length<n){ botPush('F','item'+F.drink); F.drink=null; }      // (v77)
   if(state.adv&&F.clow){ advClowSync(n); return; }      // (v73 Clow's own way of fighting · v76: any other Adventure ally fights like the usual Friend Bot; the Adventure rules — following, healing, swapping, doors — are for every ally, flag F.advAlly)
   let guard=0;
   while(F.queue.length<n&&guard++<5&&!lockedOut(F)){ if(aiCarryStep('F')) continue; const g=aiPlanGen('F',{...teamCtx('F'),resume:true,count:1}); g.next(); }
@@ -9329,7 +9399,7 @@ function teamPlan(keys){
   }
 }
 async function teamEndTurn(){ if(state.adv&&state.adv.free) return;      // 🧭 (v67) (free mode has no turns)
-  for(const k of (isFull()?humanAllies():(fHuman()?['P','F']:['P']))){ const U=state[k]; if(lockedOut(U)) continue; state.activeSide=k; while(U.queue.length<3) padWait(); }
+  for(const k of (isFull()?humanAllies():['P'])){ const U=state[k]; if(lockedOut(U)) continue; state.activeSide=k; while(U.queue.length<3) padWait(); }
   state.activeSide='P';
   friendSync(3);
   teamPlan();
@@ -9387,7 +9457,7 @@ const snapU=u=>({scar:u.scar||0,regen:u.regen||0,mregen:u.mregen||0,cons:(u.cons
 function teamRound(r){
   const keys=tkeys(), U={}; keys.forEach(k=>{ U[k]=state[k]; if(U[k]) delete U[k].planAlt; });      // 🔄 (resolving: every pawn fights with the weapon its queue entry names)
   const allyK=sideKeys(true), foeK=sideKeys(false);      // (v80 any number a side)
-  const mateK=(k,cell)=>{ if(!isFull()) return MATE[k]; const side=allyK.includes(k)?allyK:foeK; return side.find(x=>x!==k&&cell&&(U[x].pos===cell||pre[x]===cell))||null; };      // (v80) the ally on the aimed cell (the older modes: the one mate)
+  const mateK=(k,cell)=>{ const side=allyK.includes(k)?allyK:foeK; return side.find(x=>x!==k&&cell&&(U[x].pos===cell||pre[x]===cell))||null; };      // (v80) the ally on the aimed cell (the older modes: the one mate)
   const itemsSnap=cloneU(state.items||[]), itemIds=new Set(itemsSnap.map(i=>i.id));
   for(const a of (state.areas||[])) a.fresh=false;
   const areasSnap=cloneU(state.areas||[]), seenK=new Set();      // ☁️ every duel works on its own copy of the Fog; a pawn's later duels do not tick its timers again
@@ -9420,8 +9490,8 @@ function teamRound(r){
   const dum=k=>{ const D=cloneU(U[k]); D.queue=[]; D.used=[false,false,false]; D.kd=false; D.dead=false; D.lb=0; D.canNeg=false; D.hp=D.maxHp=50; return D; };      // 50 = a damage gauge for hits on a downed pawn
   const bombsSnap=state.bombs, logFullSnap=state.logFull;
   // 👥 (v80) Full Team Mode: every step on the board is settled ONCE, for everybody at the same time — then each duel only plays it out
-  const fin={}, gBump=new Set(), full=isFull()||!!state.adv;      // (v81) Adventure too
-  if(full){
+  const fin={}, gBump=new Set();      // (v81 Adventure too · v86 every team battle)
+  {
     const actOf=k=>(live(k)&&!skipK.has(k)&&!U[k].skip)?((U[k].queue||[])[r]||{}):{};
     const rank=k=>{ const a=actOf(k), V=U[k]; return ((V.raise>0||V.cta>0)?100:0)+(V.boss?50:0)+(a.type==='dash'?3:(a.runB?2.5:(a.type==='dodge'?2:1)))+(isRogue(V)?0.1:0); };      // the same order as in a duel: 📯 > Boss > Dash > 👟 Run > Dodge > Move, a Rogue wins a tie
     const mv=keys.filter(k=>dest[k]&&!skipK.has(k));
@@ -9445,9 +9515,9 @@ function teamRound(r){
     const la=live(a), le=live(e); if(!la&&!le) continue;
     state.P=la?cloneU(U[a]):dum(a); state.E=le?cloneU(U[e]):dum(e);
     if(la) subAct(state.P,a); if(le) subAct(state.E,e);
-    state.extraOcc=full?keys.filter(k=>k!==a&&k!==e&&!skipK.has(k)).map(k=>fin[k]):keys.filter(k=>k!==a&&k!==e&&!skipK.has(k)).reduce((o,k)=>o.concat([(state.adv&&dest[k])?null:pre[k],dest[k]].filter(Boolean)),[]);      // (v73 Adventure: a cell being stepped off is free to step on — a follower walks in the leader's footsteps) (v80 Full Team Mode: where everybody else really ends up)
-    state.forceBump=full?{P:gBump.has(a),E:gBump.has(e)}:null;
-    state.atkCut=(full&&voidBy)?{P:(cutBy[a]||[]).filter(z=>z.foe!==e).map(z=>z.cell),E:(cutBy[e]||[]).filter(z=>z.foe!==a).map(z=>z.cell)}:null;
+    state.extraOcc=keys.filter(k=>k!==a&&k!==e&&!skipK.has(k)).map(k=>fin[k]);      // (v80) where everybody else really ends up
+    state.forceBump={P:gBump.has(a),E:gBump.has(e)};
+    state.atkCut=voidBy?{P:(cutBy[a]||[]).filter(z=>z.foe!==e).map(z=>z.cell),E:(cutBy[e]||[]).filter(z=>z.foe!==a).map(z=>z.cell)}:null;
     state.log=[]; state.items=cloneU(itemsSnap); state.areas=cloneU(areasSnap); state.pairNoTick={P:seenK.has(a),E:seenK.has(e)};
     state.arrows=tArrIn.map((z,i)=>({z,i})).filter(o=>!arrDone.has(o.i)&&(arrTo[o.i]===null||arrTo[o.i]===a||arrTo[o.i]===e)).map(o=>{ arrDone.add(o.i); return {...o.z,only:arrTo[o.i]===null?'none':(arrTo[o.i]===a?'P':'E')}; });      // 🏹 a bounced arrow is settled in the first duel of the pawn it concerns (the one standing on its cell, or shielding it)
     state.shotLive={P:shotAt[a]===undefined||shotAt[a]===e,E:shotAt[e]===undefined||shotAt[e]===a};
@@ -9462,9 +9532,9 @@ function teamRound(r){
   } };
   runDuels(null);
   { const vb={}; for(const x of recs){ const sb=x.info.shBlk||{}; if(x.la&&sb.P&&vb[x.a]===undefined) vb[x.a]=x.e; if(x.le&&sb.E&&vb[x.e]===undefined) vb[x.e]=x.a; }
-    if(full) for(const x of recs){ const cc=x.info.clashCutOut; if(!cc) continue; for(const c of (cc.P||[])) (cutBy[x.a]=cutBy[x.a]||[]).push({cell:c,foe:x.e}); for(const c of (cc.E||[])) (cutBy[x.e]=cutBy[x.e]||[]).push({cell:c,foe:x.a}); }      // 👥 (v80) a clash in one duel cancels those blows in every duel
+    for(const x of recs){ const cc=x.info.clashCutOut; if(!cc) continue; for(const c of (cc.P||[])) (cutBy[x.a]=cutBy[x.a]||[]).push({cell:c,foe:x.e}); for(const c of (cc.E||[])) (cutBy[x.e]=cutBy[x.e]||[]).push({cell:c,foe:x.a}); }      // 👥 (v80) a clash in one duel cancels those blows in every duel
     const many=k=>recs.filter(x=>x.a===k||x.e===k).length>1;
-    if(Object.keys(vb).some(many)||(full&&Object.keys(cutBy).some(many))) runDuels(vb); }
+    if(Object.keys(vb).some(many)||Object.keys(cutBy).some(many)) runDuels(vb); }
   state.extraOcc=null; state.duelKeys=null; state.mateCover=null; state.atkVoid=null; state.dhOcc=null; state.forceBump=null; state.atkCut=null; state.P=realP; state.E=realE; state.pairNoTick=null; state.tArrows=tArrNew;
   const fogNewT=[], fogGoneT=[];
   {      // ☁️ merge the Fog of all duels: one natural tick, the burns of every duel add up, new Fog (Dodge / Fog Bomb) is shared
@@ -9502,7 +9572,7 @@ function teamRound(r){
     if(V.hp<=0&&V.lb===0&&!V.lbDone){ V.lb=6; V.hp=0; V.maxHp=0; V.lbDone=true; bossMsgs.push(`☠️ ${V.name} is down to 0 HP — a Last Breath starts by itself: untouchable for the next 6 actions.`); } }
   // safety net: nobody shares a cell
   const all=keys.filter(k=>!U[k].pu).map(k=>U[k]), clash=V=>all.some(W=>W!==V&&W.pos===V.pos);
-  for(const k of keys){ const B=U[k], mk=MATE[k], G=mk&&U[mk]; if(!B||!B.boss||B.pu||!G||G.boss||G.pu||B.pos!==G.pos||B.pos===pre[k]) continue;      // 👿 (v61) a Boss may step onto its own non-Boss mate (a goon) and shoves it on — never onto another Boss
+  for(const k of keys){ const B=U[k], mk=B&&sideKeys(teamA(k)).find(x=>x!==k&&U[x]&&!U[x].pu&&U[x].pos===B.pos), G=mk&&U[mk]; if(!B||!B.boss||B.pu||!G||G.boss||G.pu||B.pos!==G.pos||B.pos===pre[k]) continue;      // 👿 (v61) a Boss may step onto its own non-Boss mate (a goon) and shoves it on — never onto another Boss
     const c=B.pos, fr=(c2=>c2&&POS[c2]&&!all.some(W=>W.pos===c2)), bc=behindCell(pre[k],c), [bx,by]=POS[pre[k]];
     const to=fr(bc)?bc:(RING[c]||[]).filter(fr).sort((a,b)=>Math.hypot(POS[b][0]-bx,POS[b][1]-by)-Math.hypot(POS[a][0]-bx,POS[a][1]-by))[0];
     if(to){ G.pos=to; pickMsgs.push(`👿 ${B.name} barges onto ${G.name}'s cell — ${G.name} is shoved to ${to}.`); } }
@@ -9516,8 +9586,8 @@ function teamRound(r){
     if(ATTACKS.includes(a0.type)) V.sp=Math.max(0,V.sp-1);
     if((a0.type==='heal1'||a0.type==='heal2')&&V.carry){ const lvl=a0.type==='heal1'?1:2; V.tcd=V.tcd||{}; V.tcd[a0.type]=lvl===1?4:7; const M=U[V.carry];
       if(r3(preU[k].hp-V.hp)>0) cmsg.push(`${V.name}'s heal is interrupted.`);
-      else if(M){ const rr=healCalc(M.hp,M.maxHp,capOf(M),lvl,false); if(rr){ const b0=M.hp; M.hp=rr.hp; M.maxHp=rr.mh; if(rr.scar) M.scar=r3((M.scar||0)+rr.scar); xfer[V.carry]=Math.max(0.01,r3(rr.hp-b0)); cmsg.push(`💞 ${V.name} heals ${M.name} — now ${fmtNum(M.hp)}/${fmtNum(M.maxHp)}.`); } } } }
-  for(const k of keys){ const V=U[k]; if(V.pu&&V.hp<=0&&V.maxHp>0) V.hp=Math.min(V.maxHp,r3(V.hp+0.5)); }      // a passenger mends 0.5 HP per action until it is above 0
+      else if(M&&M.hp<M.maxHp){ const b0=M.hp; M.hp=Math.min(M.maxHp,r3(M.hp+(lvl===1?0.5:1))); { xfer[V.carry]=Math.max(0.01,r3(M.hp-b0)); cmsg.push(`💞 ${V.name} heals ${M.name} — now ${fmtNum(M.hp)}/${fmtNum(M.maxHp)}.`); } } } }      // (v86) healing the pawn on your back costs nobody max HP
+  for(const k of keys){ const V=U[k]; if(V.pu&&V.hp<=0&&V.maxHp>0) V.hp=Math.min(V.maxHp,r3(V.hp+PU_MEND)); }      // a passenger mends 0.5 HP per action until it is above 0
   const placeMate=(k,want,why)=>{ const V=U[k], m=V.carry, M=U[m]; if(!M){ V.carry=null; return; }
     const occ=new Set(keys.filter(x=>x!==m&&!U[x].pu).map(x=>U[x].pos));
     const cell=(want&&!occ.has(want)&&RING[V.pos].includes(want))?want:(RING[V.pos].find(c=>!occ.has(c))||V.pos);
@@ -9650,15 +9720,11 @@ function teamRound(r){
   for(const k of canK){
     const b=U[k]; if(!kdPre[k]||!b.kd||isDead(b)||b.pu||preU[k].pu||dropped.has(k)) continue;
     const touched=recs.some(x=>{ if(!x.la&&x.a===k) return (x.info.side.E.pat||[]).includes(pre[k]); if(!x.le&&x.e===k) return (x.info.side.P.pat||[]).includes(pre[k]); return false; })||b.pos!==pre[k];
+    b.maxHp=r3(b.maxHp-KD_DRAIN);      // (v86) every action on the ground costs 0.25 max HP — before the mending starts too
     if(touched) b.kdCalm=0;
-    else {
-      if(b.kdCalm>=3){
-        b.maxHp=r3(b.maxHp-0.25); b.hp=r3(b.hp+0.125);
-        if(b.maxHp<=0){ b.maxHp=0; b.hp=0; b.kd=false; b.dead=true; say(`☠️ ${b.name} fades away (max HP gone).`); }
-        else if(b.hp>0){ b.hp=Math.min(b.hp,b.maxHp); b.kd=false; b.skip=false; b.queue=[]; say(`💪 ${b.name} is back on its feet (${fmtNum(b.hp)}/${fmtNum(b.maxHp)}).`); }
-      }
-      b.kdCalm=Math.min(9,b.kdCalm+1);
-    }
+    else { if(b.kdCalm>=KD_CALM) b.hp=r3(b.hp+KD_DRAIN); b.kdCalm=Math.min(9,b.kdCalm+1); }      // (after 3 calm actions: +0.25 HP per action)
+    if(b.maxHp<=0){ b.maxHp=0; b.hp=0; b.kd=false; b.dead=true; say(`☠️ ${b.name} fades away (max HP gone).`); }
+    else if(b.hp>0){ b.hp=Math.min(b.hp,b.maxHp); b.kd=false; b.skip=false; b.queue=[]; say(`💪 ${b.name} is back on its feet (${fmtNum(b.hp)}/${fmtNum(b.maxHp)}).`); }
   }
   for(const k of canK){ const b=U[k]; if(!b.dead&&!b.kd&&b.hp<=0&&b.maxHp>0&&!(b.lb>0)&&!(isBers(b)&&b.enr>0)){ b.kd=true; b.kdCalm=0; b.skip=false; say(`🌀 ${b.name} is knocked down (${fmtNum(b.hp)} HP)!`); } }
   for(const k of keys){ const V=U[k]; if(V.carry&&(V.kd||isDead(V))) placeMate(k,null,'collapses and drops'); }      // a carrier that falls lets its passenger go
@@ -9706,16 +9772,17 @@ function teamNextTurn(quiet){
     if(U.boss&&U.lb===0&&U.hp>0){ U.sp=Math.min(spMax(U),U.sp+1); if(U.hp<U.maxHp&&U.maxHp>0.25){ U.maxHp=r3(U.maxHp-0.25); U.hp=Math.min(r3(U.hp+0.25),U.maxHp); } }      // Boss: +1 SP, passive heal
     U.raiseNew=false; if(U.tcd) for(const q of Object.keys(U.tcd)) U.tcd[q]=Math.max(0,U.tcd[q]-1); U.queue=assnFill(U); U.skip=false; }
   if(state.fbt){ fbtTurnBegin(); return; }
-  state.activeSide=isFull()?(humanAllies().find(k=>liveU(state[k]))||'P'):((liveU(state.P)||!fHuman()||!liveU(state.F))?'P':'F');
+  state.activeSide=isFull()?(humanAllies().find(k=>liveU(state[k]))||'P'):'P';
   state.phase=state.sim?'simRun':'queue'; if(!quiet) render();
 }
-// ======================= 🌐 Online Team Modes (1 vs 2 · 2 vs Boss · 2 vs 2) =======================
-// One shared document rooms/<code>/team (Firebase REST, polled): seats, every seat's queue, one "go" package per turn.
-// Every client resolves the turn locally from the same "go" package (the resolution itself is deterministic).
-const FBT_ORDER={'1v2':['P','E','E2'],'2vb':['P','F'],'2v2':['P','F','E','E2'],'2v2b':['P','F']};      // the order players take seats
-const FBT_KEYS={'1v2':['P','E','E2'],'2vb':['P','F','E'],'2v2':['P','F','E','E2'],'2v2b':['P','F','E','E2']};
-const FBT_NAME={'1v2':'1 vs 2','2vb':'2 vs Boss','2v2':'2 vs 2','2v2b':'2 vs 2 Bosses'};
-const FBT_SEATS=['P','F','E','E2'];
+// ======================= 🌐 Online Full Team (v86: replaces the online 1 vs 2 · 2 vs Boss · 2 vs 2 · 2 vs 2 Bosses) =======================
+// One shared document rooms/<code>/team (Firebase REST, polled): kind 'full', nA / nE pawns a side, the room (roomJ = the room as JSON, so every player
+// builds the same board), seats, every seat's queue, one "go" package per turn. Every client resolves the turn locally from the same "go" package.
+const fbtKeys=d=>[...ALLY_KEYS.slice(0,Math.max(1,Math.min(FULL_MAX,+(d&&d.nA)||1))),...FOE_KEYS.slice(0,Math.max(1,Math.min(FULL_MAX,+(d&&d.nE)||1)))];      // the seats, in the order players take them (Team 1 first)
+const FBT_SEATS=[...ALLY_KEYS,...FOE_KEYS];
+const fbtShape=d=>[d.nA,d.nE,d.roomJ].join('|');
+function fbtRoomOf(d){ try{ const R=JSON.parse(d.roomJ||'null'); if(R&&R.cells&&Object.keys(R.cells).length>=2) return R; }catch(e){} return builtinRoom(true); }
+function fbtRoomPatch(nA,nE,room){ const c={nA,nE,room:room||'auto'}; return {nA,nE,room:c.room,roomName:fullRoomName(c),roomJ:JSON.stringify(fullRoomFor(c))}; }
 function teamA(k){ return ALLY_KEYS.includes(k); }
 const teamOfK=k=>teamA(k)?'A':'B';
 const toArr=x=>Array.isArray(x)?x.filter(v=>v!=null):(x&&typeof x==='object'?Object.keys(x).sort((a,b)=>a-b).map(i=>x[i]):[]);
@@ -9733,35 +9800,31 @@ async function fbtReq(method,path,data){
   if(!r.ok) throw new Error(method+' '+r.status);
   return method==='GET'?await r.json():null;
 }
-function fbtBotSeat(kind,k){
-  if(kind==='2vb'&&k==='E') return {name:'Boss',emoji:BOSS_EMOJI};
-  if(kind==='2v2b'&&k==='E') return {name:'Boss',emoji:BOSS_EMOJI};
-  if(kind==='2v2b'&&k==='E2') return {name:'Red Boss',emoji:BOSS_EMOJI,gear:bossGear2({...DEFAULT_GEAR,armor:'heavy'})};      // 👿👿 (v56) the room keeps the Red Boss's random gear, so every player sees the same one
-  return {name:k==='F'?'Friend':(k==='E'?'Bot 1':'Bot 2'),emoji:'🤖',gear:{...DEFAULT_GEAR}};
+function fbtBotSeat(k,gear){      // an empty seat = a Bot (a 👿 Boss when its gear is the Boss class)
+  const g=gear||{...DEFAULT_GEAR}, i=(teamA(k)?ALLY_KEYS:FOE_KEYS).indexOf(k);
+  return {name:g.pboss?'Boss':(teamA(k)?'Ally '+(i+1):'Bot '+(i+1)),emoji:g.pboss?BOSS_EMOJI:'🤖',gear:g};
 }
 const fbtF=()=>(state&&state.fbt)||null;
-function fbtOwned(){ const F=fbtF(); if(!F) return []; return FBT_KEYS[F.kind].filter(k=>F.doc.seat[k]&&F.doc.seat[k].id===F.me); }
+function fbtOwned(){ const F=fbtF(); if(!F) return []; return fbtKeys(F.doc).filter(k=>F.doc.seat[k]&&F.doc.seat[k].id===F.me); }
 function fbtPrimary(){ const F=fbtF(); if(!F) return 'P'; const o=fbtOwned(); return o.find(k=>!F.doc.seat[k].extra)||o[0]||'P'; }
-const multiOwn=()=>state&&state.fbt?fbtOwned().length>1:(isFull()?humanAllies().length>1:fHuman());
+const multiOwn=()=>state&&state.fbt?fbtOwned().length>1:(isFull()?humanAllies().length>1:false);
 try{ if(!self.__TW) document.addEventListener('keydown',ev=>{ if(ev.code!=='Tab'||!state||state.mode!=='team'||state.phase!=='queue'||!multiOwn()) return; const tg=ev.target; if(tg&&(tg.tagName==='INPUT'||tg.tagName==='TEXTAREA')) return;      // ⌨️ (v80) Tab: the next pawn you control
   const hs=(state.fbt?fbtOwned():(isFull()?humanAllies():['P','F'])).filter(k=>state[k]&&!lockedOut(state[k])); if(hs.length<2) return; ev.preventDefault(); selectAlly(hs[(hs.indexOf(state.activeSide)+1)%hs.length]); }); }catch(e){}
-function fbtHumans(d,kind){ return FBT_KEYS[kind].filter(k=>d.seat[k]&&d.seat[k].id); }
-function fbtDriver(k,d,kind){ const hs=fbtHumans(d,kind).filter(x=>teamOfK(x)===teamOfK(k)); return hs.length?d.seat[hs[0]].id:null; }      // a Bot with a human teammate answers that teammate's actions
-function fbtDriven(){ const F=fbtF(); if(!F) return []; const d=F.doc; return FBT_KEYS[F.kind].filter(k=>!(d.seat[k]&&d.seat[k].id)&&state[k]&&!state[k].boss&&fbtDriver(k,d,F.kind)===F.me); }
-function fbtNum(k){ const F=fbtF(); const i=FBT_ORDER[F.kind].indexOf(k); return i<0?'':String(i+1); }
-function fbtCanGear(S){ const F=fbtF(), sd=F.doc.seat[S]; if(!sd||state[S].boss) return false; return sd.id===F.me||(!sd.id&&F.doc.host===F.me); }
-function fbtCanEmoji(S){ const F=fbtF(), sd=F.doc.seat[S]; if(!sd||state[S].boss) return false; return sd.id===F.me||(!sd.id&&teamOfK(S)===teamOfK(fbtPrimary())); }
+function fbtHumans(d){ return fbtKeys(d).filter(k=>d.seat[k]&&d.seat[k].id); }
+function fbtDriver(k,d){ const hs=fbtHumans(d).filter(x=>teamOfK(x)===teamOfK(k)); return hs.length?d.seat[hs[0]].id:null; }      // a Bot with a human teammate answers that teammate's actions
+function fbtDriven(){ const F=fbtF(); if(!F) return []; const d=F.doc; return fbtKeys(d).filter(k=>!(d.seat[k]&&d.seat[k].id)&&state[k]&&!state[k].boss&&fbtDriver(k,d)===F.me); }
+function fbtNum(k){ const F=fbtF(); const i=fbtKeys(F.doc).indexOf(k); return i<0?'':String(i+1); }
+function fbtCanGear(S){ const F=fbtF(), sd=F.doc.seat[S]; if(!sd) return false; return sd.id===F.me||(!sd.id&&F.doc.host===F.me); }      // your own seat · the host: every Bot (👿 Boss too)
+function fbtCanEmoji(S){ const F=fbtF(), sd=F.doc.seat[S]; if(!sd||(!sd.id&&state[S].boss)) return false; return sd.id===F.me||(!sd.id&&teamOfK(S)===teamOfK(fbtPrimary())); }
 function seatTag(S){
-  const F=fbtF();
-  if(!F) return S==='P'?' (you)':(S==='F'?(state.F.emoji==='🤖'?' (ally — AI)':' (ally — you control)'):'');
+  const F=fbtF(); if(!F) return '';
   const sd=F.doc.seat[S]||{};
-  if(sd.id===F.me) return sd.extra?' (ally — you control)':' (you · Player '+fbtNum(S)+')';
-  if(sd.id) return ' (Player '+fbtNum(S)+')';
-  return state[S].boss?'':(teamOfK(S)===teamOfK(fbtPrimary())&&F.kind!=='1v2'?' (Bot ally — a joiner or an emoji change takes it over)':' (Bot — a joiner takes over)');
+  if(sd.id===F.me) return sd.extra?' (you control)':' (you)';
+  return sd.id?' (Player '+fbtNum(S)+')':'';
 }
 const youTag=S=>{ const F=fbtF(); return F&&F.doc.seat[S]&&F.doc.seat[S].id===F.me?' (you)':''; };
 const hideSpF=(S,d)=>{ const F=fbtF(); return F?teamOfK(S)!==teamOfK(fbtPrimary()):d; };
-function foeUnits(){ if(state.mode==='team'&&state.fbt&&!teamA(state.activeSide)) return [state.P,state.F].filter(Boolean); if(isFull()) return sideKeys(!teamA(state.activeSide)).map(k=>state[k]); return state.E2?[opp(),state.E2]:[opp()]; }
+function foeUnits(){ if(isFull()) return sideKeys(!teamA(state.activeSide)).map(k=>state[k]); return state.E2?[opp(),state.E2]:[opp()]; }
 function fbtWon(){ const mineA=teamA(fbtPrimary()); return state.winner==='ally'?mineA:(state.winner==='foe'?!mineA:null); }
 function leaveOnline(){ if(state&&state.fbt&&!state.fbt.left) fbtExit(true); }
 
@@ -9780,43 +9843,49 @@ async function fbtJoin(kind){
   const saved=getSavedIdentity()||{}, gear=getSavedGear(), nm=n=>(saved.name||('Player'+n)).slice(0,8);
   for(let attempt=0;attempt<4;attempt++){
     let raw; try{ raw=await fbtGetRaw(base); }catch(e){ err.textContent='Could not reach the database ('+e.message+'). Are you inside Claude’s preview? It blocks network calls.'; return; }
-    const d=raw&&raw.seat?normDoc(raw):null, stale=!d||d.phase==='over';
+    const d=raw&&raw.seat?normDoc(raw):null, stale=!d||d.phase==='over'||d.kind!=='full';      // (a left-over room of the old team formats is simply replaced)
     if(!stale){
-      const k0=FBT_KEYS[d.kind].find(k=>d.seat[k]&&d.seat[k].id===me);
-      if(k0){ fbtEnter(d.kind,d,base,inp.room); err.textContent=''; return; }
-      if(d.kind!==kind){ err.textContent='This room is already a '+FBT_NAME[d.kind]+' game. Use another room code, or “Reset room”.'; return; }
+      const k0=fbtKeys(d).find(k=>d.seat[k]&&d.seat[k].id===me);
+      if(k0){ fbtEnter(d,base,inp.room); err.textContent=''; return; }
       if(d.phase!=='lobby'){ err.textContent='That battle has already started. Use another room code, or “Reset room” if it is left over.'; return; }
-      let seat=FBT_ORDER[kind].find(k=>!d.seat[k].id)||FBT_ORDER[kind].find(k=>d.seat[k].extra&&d.seat[k].id!==me);
+      const free=k=>d.seat[k]&&!d.seat[k].id&&!(d.seat[k].gear&&d.seat[k].gear.pboss);      // (a 👿 Boss stays a Bot)
+      let seat=fbtKeys(d).find(free)||fbtKeys(d).find(k=>d.seat[k]&&d.seat[k].extra&&d.seat[k].id!==me);
       if(!seat){ err.textContent='This room is full.'; return; }
       const emoji=fbtPickEmoji(d,kind,saved.emoji);
-      try{ await fetch(base+'/seat/'+seat+'.json',{method:'PUT',body:JSON.stringify({id:me,name:nm(FBT_ORDER[kind].indexOf(seat)+1),emoji,gear})}); }catch(e){ err.textContent='Could not join ('+e.message+').'; return; }
+      try{ await fetch(base+'/seat/'+seat+'.json',{method:'PUT',body:JSON.stringify({id:me,name:nm(fbtKeys(d).indexOf(seat)+1),emoji,gear})}); }catch(e){ err.textContent='Could not join ('+e.message+').'; return; }
       await sleep(350);
       let v; try{ v=await fbtGetRaw(base); }catch(e){ v=null; }
-      if(v&&v.seat&&v.seat[seat]&&v.seat[seat].id===me){ fbtEnter(kind,normDoc(v),base,inp.room); err.textContent=''; return; }
+      if(v&&v.seat&&v.seat[seat]&&v.seat[seat].id===me){ fbtEnter(normDoc(v),base,inp.room); err.textContent=''; return; }
       continue;      // somebody took the seat at the same moment — try the next free one
     }
-    const seat=FBT_ORDER[kind][0], doc={kind,phase:'lobby',host:me,turn:1,seat:{}};
-    for(const k of FBT_KEYS[kind]) doc.seat[k]=fbtBotSeat(kind,k);
-    doc.seat[seat]={id:me,name:nm(1),emoji:fbtPickEmoji({seat:{}},kind,saved.emoji),gear};
+    const FT=TEAM.full, doc={kind:'full',phase:'lobby',host:me,turn:1,...fbtRoomPatch(FT.nA,FT.nE,FT.room),seat:{}};      // a new room: the counts, room and Bot gear of your own Full Team setup
+    BOSS_OK++; try{ for(const k of fbtKeys(doc)) doc.seat[k]=fbtBotSeat(k,k==='P'?null:cleanGear(FT.gear[k]||{...DEFAULT_GEAR})); } finally { BOSS_OK--; }
+    doc.seat.P={id:me,name:nm(1),emoji:fbtPickEmoji({seat:{}},kind,saved.emoji),gear};
     try{ await fetch(base+'.json',{method:'PUT',body:JSON.stringify(doc)}); }catch(e){ err.textContent='Could not create the room ('+e.message+').'; return; }
     await sleep(350);
     let v; try{ v=await fbtGetRaw(base); }catch(e){ v=null; }
-    if(v&&v.seat&&v.seat[seat]&&v.seat[seat].id===me){ fbtEnter(kind,normDoc(v),base,inp.room); err.textContent=''; return; }
+    if(v&&v.seat&&v.seat.P&&v.seat.P.id===me){ fbtEnter(normDoc(v),base,inp.room); err.textContent=''; return; }
   }
   err.textContent='Could not get a seat — try again.';
 }
-function fbtEnter(kind,d,base,code){
+function fbtEnter(d,base,code){
   if(fbPollId){ clearInterval(fbPollId); fbPollId=null; }
   SIM.run++; lastMode='fb'; HIST=[];
-  NO_ROOM=true; try{ teamBuild(kind); } finally { NO_ROOM=false; }      // (online team battles: the built-in big map for everyone)
+  fullBuildWith(fbtKeys(d).filter(teamA).length,fbtKeys(d).filter(k=>!teamA(k)).length,fbtRoomOf(d),null);
   const st=state;
-  st.fbt={base,code,kind,me:clientId(),doc:d,dirty:{},ready:{},busy:false,again:false,polling:false,ranTurn:0,goBy:null,note:'',noteT:0,net:null,left:false,inDrive:false,allReadyAt:0};
+  st.fbt={base,code,kind:'full',me:clientId(),doc:d,dirty:{},ready:{},busy:false,again:false,polling:false,ranTurn:0,goBy:null,note:'',noteT:0,net:null,left:false,inDrive:false,allReadyAt:0};
   st.phase='teamSetup';
   fbtApplyDoc(d,true);
   if(d.phase==='play'){ fbtResume(d); }
   fbPollId=setInterval(fbtTick,700);
   render();
   fbtTick();
+}
+function fbtRebuild(d){      // the host changed the counts or the room: everybody rebuilds the lobby board
+  const F=state.fbt; TEAM.fsel={A:null,E:null};
+  fullBuildWith(fbtKeys(d).filter(teamA).length,fbtKeys(d).filter(k=>!teamA(k)).length,fbtRoomOf(d),null);
+  state.fbt=F; state.phase='teamSetup'; F.doc={seat:{}};
+  fbtApplyDoc(d,true);
 }
 function fbtResume(d){
   const F=state.fbt;
@@ -9836,15 +9905,17 @@ function fbtAdoptRes(res){
 // ---------- applying the shared document ----------
 function fbtApplyDoc(d,first){
   const F=state.fbt, prev=F.doc; F.doc=d;
-  for(const k of FBT_KEYS[F.kind]){
+  const setup=first||state.phase==='teamSetup';
+  for(const k of fbtKeys(d)){
     const sd=d.seat[k]||{}, U=state[k], was=prev&&prev.seat&&prev.seat[k];
     if(!U) continue;
-    if(U.boss){ if(first&&k==='E2'&&sd.gear){ U.gear=cleanGear(sd.gear); initArmor(U); U.hp=U.maxHp=U.baseHp=BOSS_HP; } continue; }      // (the Red Boss's gear comes from the room)
     const left=!first&&was&&was.id&&!sd.id&&state.phase!=='teamSetup';
     U.name=sd.name||U.name; U.emoji=sd.emoji||'🤖';
-    if((first||state.phase==='teamSetup')&&sd.gear&&(first||!was||JSON.stringify(was.gear)!==JSON.stringify(sd.gear))){ const g=cleanGear(sd.gear); U.gear=g; TEAM.gear[k]=g; initArmor(U); if(k!=='P'||state.big){ U.canNeg=true; U.kd=false; U.kdCalm=0; } if(k!=='P') U.hp=U.maxHp=U.baseHp=6+(U.clsHp||0); }
+    if(setup&&sd.gear&&(first||!was||JSON.stringify(was.gear)!==JSON.stringify(sd.gear))){ const g=cleanGear(sd.gear); U.gear=g; TEAM.gear[k]=g; U.alt=false; delete U.planAlt; fullUnitInit(U,k); }
+    if(!sd.id&&U.boss) U.emoji=BOSS_EMOJI;
     if(left){ state.log.unshift('🚪 '+(was.name||'A player')+' left — replaced by a Bot.'); F.note='🚪 '+(was.name||'A player')+' left the battle — now a Bot.'; F.noteT=Date.now(); }
   }
+  if(setup){ fullFoeNames(state); fullBossHp(state); }
 }
 function fbtHash(){ return tkeys().map(k=>{ const U=state[k]; return [k,U.pos,U.hp,U.maxHp,U.ap,U.kd?1:0,U.dead?1:0,U.pu?1:0].join(':'); }).join('|'); }
 
@@ -9859,8 +9930,10 @@ async function fbtTick(){
     if(!raw||!raw.seat){ F.net='This room was closed.'; render(); return; }
     F.net=null;
     const d=normDoc(raw);
-    fbtApplyDoc(d); devSync(raw.devOps);      // (🛠 DevTool changes of the others)
-    if(!FBT_KEYS[F.kind].some(k=>d.seat[k]&&d.seat[k].id===F.me)){ F.net='You are no longer in this room.'; render(); return; }
+    if(st.phase==='teamSetup'&&fbtShape(d)!==fbtShape(F.doc)) fbtRebuild(d); else fbtApplyDoc(d);
+    devSync(raw.devOps);      // (🛠 DevTool changes of the others)
+    if(!fbtKeys(d).some(k=>d.seat[k]&&d.seat[k].id===F.me)){ F.net='You are no longer in this room.'; render(); return; }
+    if(st.over&&!st.anim&&d.phase==='lobby'){ HIST=[]; fbtRebuild(d); state.log=['🔁 Rematch — back in the lobby: change your gear, the host starts the battle.']; render(); return; }      // 🔁 (v86) somebody pressed Rematch
     if(st.phase==='teamSetup'){ if(d.phase==='play') fbtBegin(); render(); return; }
     if(st.over||st.phase==='resolving'||st.anim){ render(); return; }
     if(Object.keys(F.dirty).length&&!F.busy) fbtFlushSoon();
@@ -9875,7 +9948,8 @@ async function fbtTick(){
 }
 function fbtBegin(){
   const F=state.fbt; HIST=[]; state.teamSel=null; state.over=false; state.turn=1;
-  state.log=[F.kind==='2vb'?'🤼 2 vs Boss begins!':'🤼 Online '+FBT_NAME[F.kind]+' begins!'];
+  const nb=tkeys().filter(k=>state[k].boss).length;
+  state.log=['👥 Online Team Mode battle begins: '+sideKeys(true).length+' vs '+sideKeys(false).length+(nb?' '+'👿'.repeat(nb):'')+'!'];
   F.ranTurn=0; F.goBy=null; F.ready={}; F.dirty={};
   fbtTurnBegin();
 }
@@ -9943,7 +10017,7 @@ function fbtAdoptQueues(d){
 // two teammates took the same cell: the one whose write reached the server first keeps it, the other's plan is cut back
 function fbtConflicts(d){
   const F=state.fbt; if(F.busy||Object.keys(F.dirty).length||state.phase!=='queue') return;
-  const acting=k=>{ const s=d.seat[k]; return s&&s.id?s.id:fbtDriver(k,d,F.kind); };
+  const acting=k=>{ const s=d.seat[k]; return s&&s.id?s.id:fbtDriver(k,d); };
   const keys=tkeys(), order=k=>FBT_SEATS.indexOf(k);
   const qOf=k=>{ const s=d.q[k]; return (s&&s.turn===state.turn)?s.queue:[]; };
   const path=(k,q)=>{ let p=state[k].pos; const a=[p]; for(const e of q){ p=planStep(p,e); a.push(p); } return a; };
@@ -10005,7 +10079,7 @@ async function fbtLockIn(auto){
   fbtTick();
 }
 async function fbtMaybeGo(d){
-  const F=state.fbt, hs=fbtHumans(d,F.kind); if(!hs.length) return;
+  const F=state.fbt, hs=fbtHumans(d); if(!hs.length) return;
   if(!hs.every(k=>{ const q=d.q[k]; return q&&q.turn===state.turn&&q.ready; })){ F.allReadyAt=0; return; }
   const ids=[]; for(const k of hs) if(!ids.includes(d.seat[k].id)) ids.push(d.seat[k].id);
   const rank=ids.indexOf(F.me); if(rank<0) return;
@@ -10015,7 +10089,7 @@ async function fbtMaybeGo(d){
   for(const k of keys){
     const U=state[k], q=d.q[k], hasQ=q&&q.turn===state.turn;
     if(fbtOwned().includes(k)) continue;
-    if((d.seat[k]&&d.seat[k].id)||(hasQ&&fbtDriver(k,d,F.kind))){ U.queue=hasQ?q.queue.map(normEntry):[]; if(hasQ&&q.sp!=null) U.sp=q.sp; }
+    if((d.seat[k]&&d.seat[k].id)||(hasQ&&fbtDriver(k,d))){ U.queue=hasQ?q.queue.map(normEntry):[]; if(hasQ&&q.sp!=null) U.sp=q.sp; }
     else pure.push(k);
   }
   const keepSide=state.activeSide;
@@ -10040,7 +10114,7 @@ async function fbtPublishRes(){
   const F=state.fbt, units={};
   for(const k of tkeys()){ const o=JSON.parse(JSON.stringify(state[k])); delete o.queue; units[k]=o; }
   const res={turn:state.turn,units,items:state.items||[],log:state.log.slice(0,30),over:!!state.over,winner:state.winner||null,h:fbtHash()};
-  try{ await fbtReq('PUT','res',res); if(state.over) await fbtReq('PATCH','',{phase:'over'}); }catch(e){}
+  try{ await fbtReq('PUT','res',res); if(state.over){ const ph=await fbtReq('GET','phase'); if(ph==='play') await fbtReq('PATCH','',{phase:'over'}); } }catch(e){}      // (v86: never over a Rematch that already began)
 }
 
 // ---------- lobby ----------
@@ -10050,33 +10124,59 @@ function fbtPatchSeat(k,obj){
 }
 function fbtEmoji(S,e){
   const F=state.fbt, sd=F.doc.seat[S]; if(!sd||!fbtCanEmoji(S)) return;
-  const taken=[];
-  if(e!=='🤖'&&(taken.includes(e)||e===BOSS_EMOJI)) return;
+  if(e!=='🤖'&&e===BOSS_EMOJI) return;
   if(sd.id===F.me){
-    if(e==='🤖'){ if(!sd.extra) return; const b=fbtBotSeat(F.kind,S); fbtPatchSeat(S,{id:null,extra:null,emoji:'🤖',name:b.name}); state[S].emoji='🤖'; state[S].name=b.name; }
+    if(e==='🤖'){ if(!sd.extra) return; const b=fbtBotSeat(S,sd.gear); fbtPatchSeat(S,{id:null,extra:null,emoji:b.emoji,name:b.name}); state[S].emoji=b.emoji; state[S].name=b.name; }
     else { fbtPatchSeat(S,{emoji:e}); state[S].emoji=e; if(!sd.extra){ const me=getSavedIdentity()||{}; saveIdentity(me.name||'',e); } }
   } else if(e!=='🤖'){ fbtPatchSeat(S,{id:F.me,extra:true,emoji:e,name:'Ally'}); state[S].emoji=e; state[S].name='Ally'; }
-  TEAM.slot[S]=null; renderTeam(); render();
+  TEAM.fsel[teamA(S)?'A':'E']=null; renderTeam(); render();
 }
+function fbtSeatLook(S,obj){ const sd=state.fbt.doc.seat[S]; if(!sd||sd.id) return obj; const b=fbtBotSeat(S,obj.gear||sd.gear); return {...obj,emoji:b.emoji,name:b.name}; }      // a Bot seat turned Boss (or back) looks the part
+// 🔁 move to the first free Bot seat of the other team (your taken-over Bot allies go back to being Bots)
+function fbtSwitchDest(){ const F=fbtF(); if(!F||state.phase!=='teamSetup') return null; const d=F.doc, k=fbtPrimary();
+  return fbtKeys(d).find(x=>teamA(x)!==teamA(k)&&d.seat[x]&&!d.seat[x].id&&!(d.seat[x].gear&&d.seat[x].gear.pboss))||null; }
 async function fbtSwitch(){
-  const F=state.fbt; if(!F||F.kind!=='2v2'||state.phase!=='teamSetup') return;
-  const k=fbtPrimary(), d=F.doc, dest=(teamA(k)?['E','E2']:['P','F']).find(x=>!d.seat[x].id);
-  if(!dest) return;
-  const patch={}; patch['seat/'+dest]={...d.seat[k]}; patch['seat/'+k]=fbtBotSeat(F.kind,k);
-  for(const x of fbtOwned()) if(x!==k) patch['seat/'+x]=fbtBotSeat(F.kind,x);
+  const F=state.fbt, dest=fbtSwitchDest(); if(!dest) return;
+  const k=fbtPrimary(), d=F.doc, patch={};
+  patch['seat/'+dest]={...d.seat[k],extra:null}; patch['seat/'+k]=fbtBotSeat(k,d.seat[dest].gear);
+  for(const x of fbtOwned()) if(x!==k) patch['seat/'+x]=fbtBotSeat(x,d.seat[x].gear);
   try{ await fbtReq('PATCH','',patch); }catch(e){ F.net='Could not switch ('+e.message+')'; render(); return; }
   fbtTick();
+}
+// 👥 the host shapes the battle in the lobby: pawns a side, which pawn goes, the room
+const fbtHostLobby=()=>{ const F=fbtF(); return !!(F&&F.doc.host===F.me&&state.phase==='teamSetup'); };
+function fbtCanRemove(S){ const F=fbtF(); if(!fbtHostLobby()) return false; const sd=F.doc.seat[S]; return !!sd&&!sd.id&&(teamA(S)?F.doc.nA:F.doc.nE)>1; }
+async function fbtLobbyPatch(patch){ const F=state.fbt; try{ await fbtReq('PATCH','',patch); }catch(e){ F.net='Could not save ('+e.message+')'; render(); return; } fbtTick(); }
+function fbtAdd(ally){
+  const F=state.fbt, d=F.doc; if(!fbtHostLobby()) return;
+  const n=ally?d.nA:d.nE; if(n>=FULL_MAX) return;
+  const k=(ally?ALLY_KEYS:FOE_KEYS)[n], patch=fbtRoomPatch(ally?n+1:d.nA,ally?d.nE:n+1,d.room);
+  BOSS_OK++; try{ patch['seat/'+k]=fbtBotSeat(k,cleanGear(TEAM.full.gear[k]||{...DEFAULT_GEAR})); } finally { BOSS_OK--; }
+  patch['q/'+k]=null; fbtLobbyPatch(patch);
+}
+function fbtRemove(S){
+  const F=state.fbt, d=F.doc; if(!fbtCanRemove(S)) return;
+  const list=teamA(S)?ALLY_KEYS:FOE_KEYS, n=teamA(S)?d.nA:d.nE, i=list.indexOf(S);
+  const patch=fbtRoomPatch(teamA(S)?n-1:d.nA,teamA(S)?d.nE:n-1,d.room);
+  for(let j=i;j<n-1;j++) patch['seat/'+list[j]]=d.seat[list[j+1]];      // the seats after it move up a place
+  patch['seat/'+list[n-1]]=null; patch['q/'+list[n-1]]=null;
+  TEAM.fsel={A:null,E:null}; fbtLobbyPatch(patch);
+}
+function fbtRoomNext(){
+  const F=state.fbt, d=F.doc; if(!fbtHostLobby()) return;
+  const list=[...FULL_ROOMS,...Object.keys(roomsAll())], i=list.indexOf(d.room||'auto');
+  fbtLobbyPatch(fbtRoomPatch(d.nA,d.nE,list[(i+1)%list.length]||'auto'));
 }
 function fbtHostStart(){
   const F=state.fbt; if(F.doc.host!==F.me) return;
   fbtReq('PATCH','',{phase:'play',turn:1,q:null,go:null,res:null,startedAt:Date.now()}).then(()=>{ F.doc.phase='play'; if(state.phase==='teamSetup') fbtBegin(); render(); }).catch(e=>{ F.net='Could not start ('+e.message+')'; render(); });
 }
 function fbtLeavePatch(d,F){
-  const mine=FBT_KEYS[F.kind].filter(k=>d.seat[k]&&d.seat[k].id===F.me); if(!mine.length) return null;
-  const rest=fbtHumans(d,F.kind).filter(k=>d.seat[k].id!==F.me);
+  const mine=fbtKeys(d).filter(k=>d.seat[k]&&d.seat[k].id===F.me); if(!mine.length) return null;
+  const rest=fbtHumans(d).filter(k=>d.seat[k].id!==F.me);
   if(!rest.length) return 'delete';
   const patch={};
-  for(const k of mine){ patch['seat/'+k]=fbtBotSeat(F.kind,k); patch['q/'+k]=null; }
+  for(const k of mine){ patch['seat/'+k]=fbtBotSeat(k,d.seat[k].gear); patch['q/'+k]=null; }
   if(d.host===F.me) patch.host=d.seat[rest[0]].id;
   return patch;
 }
@@ -10096,14 +10196,14 @@ try{ window.addEventListener('pagehide',()=>{ const F=fbtF(); if(!F||F.left||!F.
 function fbtStatusText(){
   const F=state.fbt; if(F.net) return '⚠️ '+F.net;
   if(F.note&&Date.now()-F.noteT<6000) return F.note;
-  const d=F.doc, hs=fbtHumans(d,F.kind);
-  let s='🟢 Room “'+F.code+'” · '+FBT_NAME[F.kind]+' · you are Player '+fbtNum(fbtPrimary())+' · '+hs.length+' human'+(hs.length===1?'':'s');
+  const d=F.doc, hs=fbtHumans(d);
+  let s='🟢 Room “'+F.code+'” · 👥 Team Mode '+(d.nA||1)+' vs '+(d.nE||1)+' · you are Player '+fbtNum(fbtPrimary())+' · '+hs.length+' human'+(hs.length===1?'':'s');
   if(state.phase==='teamSetup') s+=' · '+(d.host===F.me?'press Start when everyone is in':'waiting for the host to start');
   return s;
 }
 function fbtWaitText(){
   const F=state.fbt, d=F.doc; const names=[];
-  for(const k of fbtHumans(d,F.kind)){ const q=d.q[k]; if(!(q&&q.turn===state.turn&&q.ready)&&!F.ready[k]) names.push(sideName(k)); }
+  for(const k of fbtHumans(d)){ const q=d.q[k]; if(!(q&&q.turn===state.turn&&q.ready)&&!F.ready[k]) names.push(sideName(k)); }
   return names.length?'Locked in — waiting for '+names.join(', ')+'…':'Locked in — everyone is ready…';
 }
 function onExit(){
@@ -10121,12 +10221,7 @@ async function fbExit(){
   }catch(e){}
   newGame('fb');
 }
-function fbtOverText(){
-  const w=fbtWon(), F=state.fbt, team=FBT_KEYS[F.kind].filter(k=>teamOfK(k)===teamOfK(fbtPrimary())).length;
-  if(state.winner==='draw'||w===null) return 'Draw!';
-  if(w) return team>1?'Your team wins! 🎉':'You win! 🎉';
-  return (state.E&&state.E.boss)?'The Boss wins!':(team>1?'The enemy team wins!':'The enemy wins!');
-}
+function fbtOverText(){ return teamOverText(myTeamA()); }
 
 // ======================= 🛠 DevTool (v55) =======================
 // The 🛠 button next to 💾 Save / 📂 Load asks once for the password (remembered in this browser), then opens a side panel that bends the CURRENT battle:
@@ -10269,6 +10364,7 @@ async function goMenu(){ if(state&&state.mode==='replay') return; if(state&&stat
 function menuRender(){
   const on=!!(state&&state.menu), hp=document.getElementById('homePanel'); document.body.classList.toggle('menuMode',on);
   if(!hp) return; hp.style.display=on?'block':'none'; if(!on){ MENU.drawn=null; return; }
+  { const b=document.getElementById('fbResetAllBtn'); if(b) b.style.display=devUnlocked()?'':'none'; }      // 🛠 (v86) DevTool access only
   const w=MENU.stack[MENU.stack.length-1], show=(id,v)=>{ const el=document.getElementById(id); if(el) el.style.display=v?'block':'none'; };
   show('homeMain',w==='home'); show('homeSingle',w==='single'); show('fbSetupPanel',w==='online'); show('customPanel',w==='custom'); show('simPanel',w==='sim');
   { const hm=document.getElementById('homeMain'), hs=document.getElementById('homeSingle'); if(hm) hm.style.display=w==='home'?'flex':'none'; if(hs) hs.style.display=w==='single'?'flex':'none'; }
@@ -10374,10 +10470,12 @@ function genFormHTML(g,w){ const opt=(v,l,cur)=>`<option value="${escH(v)}"${Str
 function roomGenPlay(){ const R=roomGen(RGEN); R.name='Generated'; const all=roomsAll(); all.Generated=R; roomsPut(all); roomPick('Generated'); }
 function roomPick(n){ roomSelSet(n); const el=document.getElementById('roomPop'); if(el) el.style.display='none'; if(state&&state.mode==='team'&&!state.sim) openTeam(); else if(state&&state.mode==='sim'&&!state.menu) openSim(); else newGame(lastMode); }
 function fbRoomRowRender(){ const el=document.getElementById('fbRoomRow'); if(!el) return; const names=['new','old',...Object.keys(roomsAll())]; if(ONLINE_ROOM===null) ONLINE_ROOM=ROOM_SEL||'new'; if(!names.includes(ONLINE_ROOM)) ONLINE_ROOM='new';
-  el.innerHTML=`🗺️ Room for a new 1 vs 1 duel: <select onchange="ONLINE_ROOM=this.value">${names.map(n=>`<option value="${escH(n)}"${n===ONLINE_ROOM?' selected':''}>${escH(roomName(n))}</option>`).join('')}</select><div style="font-size:11px;opacity:.7">Whoever opens the room picks it — a joiner plays on the room's own.</div>`; }
+  el.innerHTML=`🗺️ Room for a new 1 vs 1 duel: <select onchange="ONLINE_ROOM=this.value">${names.map(n=>`<option value="${escH(n)}"${n===ONLINE_ROOM?' selected':''}>${escH(roomName(n))}</option>`).join('')}</select><div style="margin-top:4px"><label title="Both players get their Backpack (what the Customize window has in it). Online Team Mode has no Backpack yet."><input type="checkbox" ${ONLINE_PACK?'checked':''} onchange="onlinePackSet(this.checked)"> 💼 Backpack in a new 1 vs 1 duel</label></div><div style="font-size:11px;opacity:.7">Whoever opens the room picks them — a joiner plays on the room's own.</div>`; }
+var ONLINE_PACK=(()=>{ try{ return localStorage.getItem('hexduel_onlinepack')!=='0'; }catch(e){ return true; } })();      // 💼 (v86) ON by default
+function onlinePackSet(on){ ONLINE_PACK=!!on; try{ localStorage.setItem('hexduel_onlinepack',on?'1':'0'); }catch(e){} }
 function onlineRoomObj(){ const n=ONLINE_ROOM===null?(ROOM_SEL||'new'):ONLINE_ROOM; if(n==='new') return null; if(n==='old') return builtinRoom(false); const R=roomsAll()[n]; return (R&&R.cells)?roomNorm(R):null; }
 // ---- ⬅ Back (in a battle: to the menu window it was started from) ----
-async function battleBack(){ if(!state||state.mode==='replay') return; if(state.fbt) await fbtExit(true); openMenu((MENU.ret&&MENU.ret.length)?MENU.ret:['home']); }
+async function battleBack(){ if(!state||state.mode==='replay') return; const onl=!!state.fbt||state.mode==='fb'; if(state.fbt) await fbtExit(true); openMenu(onl?['home','online']:((MENU.ret&&MENU.ret.length)?MENU.ret:['home'])); }      // (v86) an online room goes back to the Online window
 function backBtnUpdate(){ const b=document.getElementById('backBtn'), on=!!(state&&!state.menu&&state.mode!=='replay'); if(b) b.style.display=on?'block':'none';
   if(state&&!state.menu){ const sr=document.getElementById('simCalcResult'); if(sr) sr.style.display=''; MENU.xDrawn=null; } }
 function menuRenderX(w){ const show=(id,v,d)=>{ const el=document.getElementById(id); if(el) el.style.display=v?(d||'block'):'none'; };
@@ -10574,7 +10672,7 @@ function advStart(){
   if(state&&state.menu){ SIM.run++; MENU.ret=MENU.stack.slice(); }
   try{ leaveOnline(); }catch(e){} HIST=[]; lastMode='adv';
   const saved=getSavedIdentity();
-  state=blankState0('team',true); state.kind='1v2'; state.log=['🧭 Adventure — the Debug test room. 🎹 Play the piano (a Perfect note opens the 🚪 door) · ❤️ / 💀 buttons · 🎯 a dummy to hit.'];
+  state=blankState0('team',true); state.kind='adv'; state.log=['🧭 Adventure — the Debug test room. 🎹 Play the piano (a Perfect note opens the 🚪 door) · ❤️ / 💀 buttons · 🎯 a dummy to hit.'];
   const P=state.P; P.gear=getSavedGear(); initArmor(P); P.hp=P.maxHp; P.name=(saved&&saved.name)||defName('P'); P.emoji=(saved&&saved.emoji)||'🌞'; P.pos=ADV.spawn; packGive(P); if(!P.pack){ P.pack=[null,null,null,null]; P.packMeta=[null,null,null,null]; }      // (v71) the backpack is always there in Adventure
   state.E=advMkUnit('Dummy','🎯',{...DEFAULT_GEAR},6,ADV.dummy); state.E.dummy=true;
   state.adv={room:1,map:'r1',free:true,coins:+(localStorage.getItem('hexduel_coins')||0)||0,loot:[],seq:0,fcd:{},sig:'',lastAct:Date.now(),lastRegen:Date.now(),lastMana:Date.now(),doors:{E1:{open:false},DR:{open:true},DL:{open:false},RD:{open:false},TD:{open:false}},clow:{st:'chained',cell:ADV.prison,room:4,hits:0},corpses:[],reserve:{},rkeys:0,shopGone:{},piano:true,units:{},items:{},r2cleared:false,busy:false,fx:[],fxRaf:0,shop:{hpot:true,bomb:true,key:true},keys:0,fightLog:[]}; state.adv.door=state.adv.doors.E1;      // (v70) every door has its own state · the shop's stock · 🗝️ keys
