@@ -8721,7 +8721,7 @@ document.addEventListener('keydown',ev=>{
 // ---------- Rendering ----------
 function renderHUD(){
   const ov=state.hudOverride;
-  const val=S=>ov?ov[S]:state[S];
+  const val=S=>(ov&&ov[S])||state[S];      // (v86 a broken corpse has no snapshot)
   const bar=(S,hideSP)=>{const u=val(S);const base=baseOf(state[S]);
     if(stealthView(S,u)==='hidden') return `<div class="hpbar" style="--n:${base}" title="Unknown"><div class="hpseg"></div></div><div>HP ?/? | AP ?</div><div class="sub">Effects: ?</div><div>SP: ?</div>`;      // 🫥 an enemy Rogue in Stealth: everything is "?"
     const scar=Math.max(0,Math.min(base,u.scar||0)), cap=r3(base-scar);      // 💗 (v61) the bar is as long as the original max HP left: Cheap Heal scars shorten it, the lost tail stays as a dashed ghost
@@ -9422,6 +9422,7 @@ function teamPlan(keys){
   const gens={}; for(const k of bots) if(liveU(state[k])) gens[k]=aiPlanGen(k,teamCtx(k));
   for(let i=0;i<3;i++) for(const k of bots){
     const U=state[k]; if(lockedOut(U)||U.queue.length>i) continue;      // knocked down / carried / slot already filled by a Drop
+    if(U.ghost){ U.queue.push({type:'wait',target:null,target2:null,spBefore:U.sp,actualCost:0}); continue; }      // 💀 (v86) a broken corpse (no cell) only waits
     if(aiCarryStep(k)){ gens[k]=aiPlanGen(k,{...teamCtx(k),resume:true}); continue; }
     if(!gens[k]) gens[k]=aiPlanGen(k,{...teamCtx(k),resume:true});
     gens[k].next();
@@ -9484,8 +9485,9 @@ const TEAM_MAPS=['lightHit','lnoteHit','lnoteGot','loseNew','disHit','deafNew','
 const TEAM_SUM=['boomHit','dmg','hpDmg','armorHit','shieldSp','restHit','iceApHit','spikeHit'];
 const snapU=u=>({scar:u.scar||0,regen:u.regen||0,mregen:u.mregen||0,cons:(u.cons||[]).map(c=>({q:c.q.slice(),ttl:c.ttl})),lose:u.lose||0,mp:u.mp||0,ip:u.ip||0,iap:u.iap||0,rap:u.rap||0,ice:u.ice?{lost:u.ice.lost.slice()}:null,chill:u.chill||0,oiled:u.oiled||0,wet:u.wet||0,burn:u.burn||0,warm:u.warm||0,lit:u.lit||0,spear:!!u.spear,frz:u.frz||0,prep:u.prep||null,pinned:u.pinned||0,poison:u.poison||0,sleepy:u.sleepy||0,drew:!!u.drew,ld:ldOf(u),enr:u.enr||0,assn:u.assn||0,bleed:u.bleed||0,stealth:u.stealth||0,fogged:u.fogged||0,split:u.split||0,hooked:u.hooked||0,raise:u.raise||0,rch:u.rch||0,cta:u.cta||0,arms:u.arms||0,armsCh:u.armsCh||0,echo:u.echo||0,harm:u.harm||0,hp:u.hp,sp:u.sp,maxHp:u.maxHp,heals:u.heals,lb:u.lb,ap:u.ap||0,maxAp:u.maxAp||0,ap0:u.ap0||0,bap0:u.bap0||0,bmax:u.bmax||0,tier:u.tier,gearArmor:gearOf(u).armor,kd:!!u.kd,pu:u.pu||null,carry:u.carry||null,kdCalm:u.kdCalm||0,canNeg:!!u.canNeg,dead:!!u.dead,deadPre:isDead(u)});      // (v86 kdCalm / canNeg / dead: the knock-down timers stay put while an action plays)
 function teamRound(r){
-  const keys=tkeys(), U={}; keys.forEach(k=>{ U[k]=state[k]; if(U[k]) delete U[k].planAlt; });      // 🔄 (resolving: every pawn fights with the weapon its queue entry names)
-  const allyK=sideKeys(true), foeK=sideKeys(false);      // (v80 any number a side)
+  const keys=tkeys().filter(k=>!(isFull()&&state[k]&&state[k].ghost)), U={};      // (v86 a broken corpse in Full Team Mode takes no part)
+  keys.forEach(k=>{ U[k]=state[k]; if(U[k]) delete U[k].planAlt; });      // 🔄 (resolving: every pawn fights with the weapon its queue entry names)
+  const allyK=sideKeys(true).filter(k=>keys.includes(k)), foeK=sideKeys(false).filter(k=>keys.includes(k));      // (v80 any number a side)
   const mateK=(k,cell)=>{ const side=allyK.includes(k)?allyK:foeK; return side.find(x=>x!==k&&cell&&(U[x].pos===cell||pre[x]===cell))||null; };      // (v80) the ally on the aimed cell (the older modes: the one mate)
   const itemsSnap=cloneU(state.items||[]), itemIds=new Set(itemsSnap.map(i=>i.id));
   for(const a of (state.areas||[])) a.fresh=false;
@@ -9779,14 +9781,14 @@ async function runTeamResolution(){
     if(state.adv){ const hos=sideKeys(false).filter(k=>state[k]&&state[k].hostile); if(hos.length&&hos.every(k=>isDead(state[k]))&&!(state.adv.reserve[state.adv.room]||[]).length&&['P','F'].some(k=>state[k]&&!isDead(state[k]))){      // (v74: only while your side still stands — falling with the last enemy is a game over, not a frozen free mode)
       state.adv.endCombat=true; state.winner=null; state.over=false; state.phase='resolving'; } }      // 🧭 (v67) the last enemy down: no "victory", the room goes back to free mode
     const idle=a=>a==='wait'||a==='rest'||a==='nap'||a==='none';
-    info.quiet=!info.hasFx&&!state.over&&tkeys().every(k=>idle(info.side[k].act));
+    info.quiet=!info.hasFx&&!state.over&&tkeys().every(k=>!info.side[k]||idle(info.side[k].act));
     state.hudOverride=info.pre;
     state.fx={attack:info.attackCells,defend:info.defendCells,counter:info.counterCells,shot:info.shotCells};
     state.anim={info}; state.animT=0;
     render();
     await animateRound(info);
     state.anim=null; state.fx=null; state.hudOverride=null;
-    for(const k of tkeys()){ const U=state[k]; if(U&&U.breaking){ U.breaking=false; U.ghost=true; } }      // 💀 (v86) a broken corpse is gone from the board
+    for(const k of tkeys()){ const U=state[k]; if(U&&U.breaking){ U.breaking=false; U.ghost=true; U.pos=null; } }      // 💀 (v86) a broken corpse is gone from the board — its cell is free again (it has no cell any more)
     render();
     if(state.adv&&!state.over){ await advPostRound(info,advPrev); if(state.adv.endCombat){ state.adv.endCombat=false; advFightDone(); return; } }
     if(state.over){ playEnd(); return; }
