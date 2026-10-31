@@ -9179,8 +9179,8 @@ function mateOf(U){ if(!state||state.mode!=='team'||!U) return null; const k=key
   const pp=plannedPosOf(U); return ms.slice().sort((a,b)=>((DIST[pp]||{})[a.pos]??99)-((DIST[pp]||{})[b.pos]??99))[0]; }
 function matesOf(U){ const k=state&&keyOf(U); if(!k) return []; return sideKeys(teamA(k)).filter(x=>x!==k).map(x=>state[x]); }      // (v80) every other pawn of its team
 function lockedOut(U){ return !!U.kd&&!(U.queue||[]).some(e=>e.type==='dropped'&&e.active); }
-// 🌀 (v86) Knocked down: −0.25 max HP every action on the ground; after 3 calm actions (no blow, not moved) +0.25 HP per action too · 👥 Picked Up: +0.5 HP per action, no max HP lost
-const KD_DRAIN=0.25, KD_CALM=3, PU_MEND=0.5;
+// 🌀 (v86) Knocked down: −0.125 max HP every action on the ground; after 3 calm actions (no blow, not moved) +0.125 HP per action too · 👥 Picked Up: +0.25 HP per action, no max HP lost
+const KD_DRAIN=0.125, KD_CALM=3, PU_MEND=0.25;
 function kdTimes(U){      // the actions left if nothing disturbs it: {wait, mend} (white: until the mending starts · green: until it is above 0 HP) or {die}
   if(!U||isDead(U)) return null;
   const left=(hp,step)=>hp>0?0:Math.floor(-hp/step+1e-9)+1;
@@ -9587,7 +9587,7 @@ function teamRound(r){
     if((a0.type==='heal1'||a0.type==='heal2')&&V.carry){ const lvl=a0.type==='heal1'?1:2; V.tcd=V.tcd||{}; V.tcd[a0.type]=lvl===1?4:7; const M=U[V.carry];
       if(r3(preU[k].hp-V.hp)>0) cmsg.push(`${V.name}'s heal is interrupted.`);
       else if(M&&M.hp<M.maxHp){ const b0=M.hp; M.hp=Math.min(M.maxHp,r3(M.hp+(lvl===1?0.5:1))); { xfer[V.carry]=Math.max(0.01,r3(M.hp-b0)); cmsg.push(`💞 ${V.name} heals ${M.name} — now ${fmtNum(M.hp)}/${fmtNum(M.maxHp)}.`); } } } }      // (v86) healing the pawn on your back costs nobody max HP
-  for(const k of keys){ const V=U[k]; if(V.pu&&V.hp<=0&&V.maxHp>0) V.hp=Math.min(V.maxHp,r3(V.hp+PU_MEND)); }      // a passenger mends 0.5 HP per action until it is above 0
+  for(const k of keys){ const V=U[k]; if(V.pu&&V.hp<=0&&V.maxHp>0) V.hp=Math.min(V.maxHp,r3(V.hp+PU_MEND)); }      // a passenger mends 0.25 HP per action until it is above 0
   const placeMate=(k,want,why)=>{ const V=U[k], m=V.carry, M=U[m]; if(!M){ V.carry=null; return; }
     const occ=new Set(keys.filter(x=>x!==m&&!U[x].pu).map(x=>U[x].pos));
     const cell=(want&&!occ.has(want)&&RING[V.pos].includes(want))?want:(RING[V.pos].find(c=>!occ.has(c))||V.pos);
@@ -9720,9 +9720,9 @@ function teamRound(r){
   for(const k of canK){
     const b=U[k]; if(!kdPre[k]||!b.kd||isDead(b)||b.pu||preU[k].pu||dropped.has(k)) continue;
     const touched=recs.some(x=>{ if(!x.la&&x.a===k) return (x.info.side.E.pat||[]).includes(pre[k]); if(!x.le&&x.e===k) return (x.info.side.P.pat||[]).includes(pre[k]); return false; })||b.pos!==pre[k];
-    b.maxHp=r3(b.maxHp-KD_DRAIN);      // (v86) every action on the ground costs 0.25 max HP — before the mending starts too
+    b.maxHp=r3(b.maxHp-KD_DRAIN);      // (v86) every action on the ground costs 0.125 max HP — before the mending starts too
     if(touched) b.kdCalm=0;
-    else { if(b.kdCalm>=KD_CALM) b.hp=r3(b.hp+KD_DRAIN); b.kdCalm=Math.min(9,b.kdCalm+1); }      // (after 3 calm actions: +0.25 HP per action)
+    else { if(b.kdCalm>=KD_CALM) b.hp=r3(b.hp+KD_DRAIN); b.kdCalm=Math.min(9,b.kdCalm+1); }      // (after 3 calm actions: +0.125 HP per action)
     if(b.maxHp<=0){ b.maxHp=0; b.hp=0; b.kd=false; b.dead=true; say(`☠️ ${b.name} fades away (max HP gone).`); }
     else if(b.hp>0){ b.hp=Math.min(b.hp,b.maxHp); b.kd=false; b.skip=false; b.queue=[]; say(`💪 ${b.name} is back on its feet (${fmtNum(b.hp)}/${fmtNum(b.maxHp)}).`); }
   }
