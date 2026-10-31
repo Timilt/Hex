@@ -726,7 +726,7 @@ const spMax=U=>6+armorMod(U).max+(isMus(U)?-1:0);      // (👩‍🎤 the Music
 const dmgMul=U=>(U&&U.boss)?1:(armorMod(U).dm||1)*((U&&(U.cta||0)>0)?1.25:1)*((U&&U.bigW&&U.bigW[gearOf(U).main])?1.5:1);      // (v70 ⚒️ a reforged weapon in hand: ×1.5)      // armor class scales the damage a pawn deals (the Boss is exempt)
 function scaleHits(hits,m){ return (!hits||m===1)?hits:hits.map(h=>h.map(c=>({...c,dmg:r3(c.dmg*m)}))); }
 const ARMOR_LEAK={none:1,light:1/3,robe:1/2,medium:1/4,heavy:1/5,jugg:1/6,cloak:1/3};   // share of a blow that still reaches HP while AP lasts
-const juggImm=U=>tierOf(U)==='jugg'||(!!U&&!!U.gear&&U.gear.armor==='jugg'&&r3((U.maxAp||0)-(U.bmax||0))>0);      // (v86) Juggernaut armor keeps its Stagger immunity until its max AP is gone
+const juggImm=U=>tierOf(U)==='jugg';      // Stagger immunity while the armor still behaves as Juggernaut (v86: its −1 SP per action is gone)
 const JUGG_ACTS=['slice','slash','arc','whirl','whirlwind','move','defend','cdefend','dodge','dash','counter'];      // Juggernaut armor tires: −1 SP on every such action carried out
 const tierFromMax=m=>m>3?'jugg':(m>2?'heavy':(m>1?'medium':(m>0?'light':'none')));
 const DEFAULT_GEAR={cls:'knight',main:'sword',off:'shield',armor:'medium',boots:'leather'};
@@ -4402,7 +4402,7 @@ function renderCustom(){
   else if(state.customSlot==='cls') pick='<b>Class</b><br>'+b('cls','knight','⚔️ Knight',g.cls==='knight'&&!g.pboss)+b('cls','paladin',palIcon(g)+' '+palName(g),g.cls==='paladin',false,'Paladin: the Great Shield (three-cell Defend, Raise Shield) · Champion: no Great Shield — a normal Shield, a second blade or nothing, Call to Arms')+b('cls','rogue','♠️ Rogue',g.cls==='rogue')+b('cls','berserk','🌋 Berserk',g.cls==='berserk')+b('cls','mage','🧙 Mage',g.cls==='mage')+b('cls','musician','👩‍🎤 Musician',g.cls==='musician')+(bossClsOn()?b('cls','boss','👿 Boss',!!g.pboss,false,'The Boss: 12 HP, +1 SP and a little healing every turn, cannot be shoved, hits twice as hard; at 8 HP the Second Phase (immune to Stagger, no parry against it, cheaper Arc / Swing) — and you may still pick any action'):'');
   else if(state.customSlot==='main') pick=mainPickHTML(g,b);
   else if(state.customSlot==='armor'){
-    const ad=k=>{ const a=ARMOR[k]; const f=n=>(n>0?'+':'')+n; const bits=[`${a.ap} AP`,`${f(a.max)} max/start SP`]; if(a.pass) bits.push(`${f(a.pass)} SP/turn`); bits.push(`damage ×${a.dm}`); if(k==='jugg') bits.push('every action −1 SP'); if(k==='robe') bits.push('½ of a blow reaches HP · each attack in a row makes the next 1 SP cheaper (max −2)');  if(a.mv) bits.push(`Move ${f(a.mv)}`); if(a.dd) bits.push(`Dodge/Dash ${f(a.dd)}`); if(a.reg) bits.push(`+${a.reg} mend`); if(a.mp) bits.push(`+${a.mp} MP/turn`); return bits.join(' · '); };
+    const ad=k=>{ const a=ARMOR[k]; const f=n=>(n>0?'+':'')+n; const bits=[`${a.ap} AP`,`${f(a.max)} max/start SP`]; if(a.pass) bits.push(`${f(a.pass)} SP/turn`); bits.push(`damage ×${a.dm}`); if(k==='robe') bits.push('½ of a blow reaches HP · each attack in a row makes the next 1 SP cheaper (max −2)');  if(a.mv) bits.push(`Move ${f(a.mv)}`); if(a.dd) bits.push(`Dodge/Dash ${f(a.dd)}`); if(a.reg) bits.push(`+${a.reg} mend`); if(a.mp) bits.push(`+${a.mp} MP/turn`); return bits.join(' · '); };
     pick='<b>Armor</b><br>'+armorChoices(g).map(k=>`<div style="text-align:left;margin:2px 0">${b('armor',k,ARMOR[k].icon+' '+ARMOR[k].name,g.armor===k)} <span style="font-size:11px;opacity:.8">${ad(k)}</span></div>`).join('');
   }
   else if(state.customSlot==='off') pick=offPickHTML(g,b);
@@ -6784,7 +6784,7 @@ function resolveRound(r){
   // Juggernaut armor: every attack / Move / Defend / Dodge / Dash / Counter (Hook) carried out costs another −1 SP
   const juggSp={P:0,E:0};
   for(const [S,act,U,n] of [['P',actP,P,nP],['E',actE,E,nE]]){
-    if(tierPre[S]==='jugg'&&!(S==='P'?downP:downE)&&(JUGG_ACTS.includes(act.type)||act.type==='hook'||act.type==='dhook')){ U.sp-=1; juggSp[S]=1; evts.push(`${n}'s Juggernaut armor tires — an extra −1 SP.`); }
+    if(false&&tierPre[S]==='jugg'&&!(S==='P'?downP:downE)&&(JUGG_ACTS.includes(act.type)||act.type==='hook'||act.type==='dhook')){ U.sp-=1; juggSp[S]=1; evts.push(`${n}'s Juggernaut armor tires — an extra −1 SP.`); }
   }
   // a Counter that never landed gives some SP back: 2-SP Counter returns 1, a 1-SP chained Counter returns nothing (a Counter swapped by a Dash is not a failure)
   const counterRefund={P:0,E:0};
@@ -7406,7 +7406,7 @@ function drawUnits(t){
     { const has=k=>info?((info.pre&&info.pre[S]&&info.pre[S][k]>0&&t<H)||(st[k]>0&&t>=H)):st[k]>0;      // 🎯 Pinned · 🤢 Poisoned · 😴 Sleepy
       if(!dead){ if(has('pinned')) stats+=stat('🎯',x-18*bs,y+14*bs); if(has('poison')) stats+=stat('🤢',x+18*bs,y+14*bs,` opacity="${f2(0.6+0.4*Math.sin((t||Date.now())/150))}"`); if(has('sleepy')) stats+=stat('😴',x,y-30*bs,` opacity="${f2(0.6+0.4*Math.sin((t||Date.now())/170))}"`); if(has('chill')) stats+=stat('🥶',x+18*bs,y-12*bs,` opacity="${f2(0.65+0.35*Math.sin((t||Date.now())/160))}"`);
         if(has('mesm')) stats+=stat('💘',x-21*bs,y+1*bs,` opacity="${f2(0.6+0.4*Math.sin((t||Date.now())/140))}"`); if(has('deaf')) stats+=stat('🦻',x+21*bs,y+1*bs,` opacity="${f2(0.6+0.4*Math.sin((t||Date.now())/120))}"`); } }      // 💘 Mesmerized · 🦻 Deafened
-    if(!info&&state.phase==='queue'&&state.pending&&S===state.activeSide&&((tierOf(st)==='jugg'&&JUGG_ACTS.includes(state.pending))||(isDouble(st)&&DBL_COST[state.pending])||(isLong(st)&&LONG_COST[state.pending])||isAxeAtk(st,state.pending)||(isPal(st)&&state.pending==='move'))) stats+=stat('−1🔶',x+14*bs,y-23*bs,'','stat spp');      // hidden SP cost, pulsing in the preview
+    if(!info&&state.phase==='queue'&&state.pending&&S===state.activeSide&&((isDouble(st)&&DBL_COST[state.pending])||(isLong(st)&&LONG_COST[state.pending])||isAxeAtk(st,state.pending)||(isPal(st)&&state.pending==='move'))) stats+=stat('−1🔶',x+14*bs,y-23*bs,'','stat spp');      // hidden SP cost, pulsing in the preview
     if(!v) continue;
     { const rOn=v.raiseShow; if(rOn&&!dead) stats+=stat('🛡️',x-18*bs,y-12*bs,` opacity="${f2(0.55+0.45*Math.sin(t/110))}"`); }
         // action icon (direction-aware). A double-sword's hit 1 is not suppressed by a clash if this clash is the dbl-vs-axe-last-cell kind
