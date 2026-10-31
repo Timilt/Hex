@@ -131,11 +131,22 @@ body.menuMode #fbSetupPanel{text-align:center;}
 .hud.team4{display:grid;grid-template-columns:max-content max-content;justify-content:start;gap:8px 18px;}
 .hud>div:empty{display:none;}
 .hud .selinfo{border-radius:7px;padding:3px 6px;margin:-3px -6px;animation:pulseBox 1.3s ease-in-out infinite;}
-#hudYou.hudTeam{display:flex;flex-wrap:wrap;gap:8px 16px;}
+#hudYou.hudTeam,#hudFoe.hudTeam{display:flex;flex-wrap:wrap;gap:8px 16px;}
 .hud .hudCard{min-width:120px;padding:3px 6px;margin:-3px 0;border-radius:7px;}
 .hud .hudCard.selinfo{margin:-3px 0;}
 .hud .hudCard.pick{cursor:pointer;}
 .hud .hudCard.pick:hover{background:rgba(0,180,255,.10);}
+.hud .hudCard.mini{zoom:.5;min-width:120px;}
+#hudFoe.hudTeam{border-left:2px solid #8887;padding-left:10px;flex:1 1 0;min-width:0;}
+#hudYou.hudTeam,#hudFoe.hudTeam{align-self:flex-start;align-items:flex-start;}
+.hud .hudCard.focus{box-shadow:0 0 0 2px #ff5a4d88;}
+.hud .hudCard.dead{opacity:.45;}
+.hudPop{position:fixed;z-index:60;pointer-events:none;min-width:120px;padding:3px 6px;border-radius:7px;background:var(--bg);box-shadow:0 4px 18px #000a,0 0 0 1px #8886;font-size:13px;}
+.hudPop.dead{opacity:.8;}
+.hudPop .sub{font-size:10px;opacity:.7;margin-top:1px;}
+.hudPop .sub.lbtag{opacity:1;font-weight:700;color:var(--accent);}
+.hudPop .sub.lbtag.neg{color:#ff5a4d;}
+.hudPop .sub.lbtag.pos{color:#4fd98a;}
 @keyframes pulseBox{0%,100%{box-shadow:0 0 0 2px #00b3ff,0 0 4px 1px #00b3ff88}50%{box-shadow:0 0 0 2px #00d4ff,0 0 14px 4px #00b3ffcc}}
 .actbtn.drop{background:rgba(125,78,36,.88);}
 .hud.team4>#hudYou{grid-column:1;grid-row:1}
@@ -564,6 +575,7 @@ table.tMx{border-collapse:collapse;font-size:11.5px;}
       <div id="hudF"></div>
       <div id="hudFoe"></div>
       <div id="hudE2"></div>
+      <div id="hudPop" class="hudPop" style="display:none"></div>
     </div>
     <div id="allyTabs" style="display:none;margin:6px 0"></div>
     <div class="actions" id="actBtns"></div>
@@ -2519,8 +2531,9 @@ function dblDmgMap(pos,type,picks,planned){
 const CD_BASE={slice:1,slash:2,arc:3,whirl:4}, CD_DBL={slice:2,slash:3,arc:4,whirlwind:6};
 function baseOf(U){ return U.baseHp||(U.boss?BOSS_HP:MAXHP); }
 function capOf(U){ return Math.max(0,r3(baseOf(U)-(U.scar||0))); }      // 💗 (v61) the original max HP left after the scars of Cheap Heals (U.scar = how much of it is gone for good)
-function cdKey(t,U){ if(MA_T.includes(t)&&t!=='cblock') return t; if(t==='bash'||t==='bang'||t==='hlance'||t==='pierce'||t==='hhook'||t==='dissonance'||t==='roll'||t==='mistune'||t==='rdash'||SONG_ALL.includes(t)) return t; if(ARP_T.includes(t)) return 'arp'; if(ECHO_T.includes(t)) return 'echo'; if(isPlainShot(t)) return 'shot'; if(t==='slice'&&U&&isBow(U)&&isKnife(U)) return null; if(U&&isAxe(U)&&t==='counter') return 'hook'; if(t==='ram') return 'dash'; return (t==='lance'||t==='push'||t==='slice'||t==='slash'||t==='arc'||t==='whirl'||t==='whirlwind'||t==='dash'||t==='counter')?t:null; }
+function cdKey(t,U){ if(MA_T.includes(t)&&t!=='cblock') return t; if(t==='kick') return 'kick'; if(t==='bash'||t==='bang'||t==='hlance'||t==='pierce'||t==='hhook'||t==='dissonance'||t==='roll'||t==='mistune'||t==='rdash'||SONG_ALL.includes(t)) return t; if(ARP_T.includes(t)) return 'arp'; if(ECHO_T.includes(t)) return 'echo'; if(isPlainShot(t)) return 'shot'; if(t==='slice'&&U&&isBow(U)&&isKnife(U)) return null; if(U&&isAxe(U)&&t==='counter') return 'hook'; if(t==='ram') return 'dash'; return (t==='lance'||t==='push'||t==='slice'||t==='slash'||t==='arc'||t==='whirl'||t==='whirlwind'||t==='dash'||t==='counter')?t:null; }
 function cdVal(U,t,prev){
+  if(t==='kick') return 1;      // 👊 (v86) not twice in a row: 1 action
   if(MA_T.includes(t)) return MA_CD[t];      // 🥋 (v86) the Martial Arts moves: a cooldown as long as their SP cost
   if(t==='pierce') return isRapier(U)?RAP_PIERCE_CD:PIERCE_CD;
   if(isRapier(U)&&t==='arc') return rapKnife(U)?CD_BASE.arc:CD_SOLOKNIFE.arc;      // 🪡 Slit: like two Knives / a single Knife if(t==='hhook'||t==='dissonance'||t==='roll'||t==='mistune') return MUSDEF_CD; if(t==='rdash') return RDASH_CD; if(ARP_T.includes(t)) return 3+ARP_T.indexOf(t); if(ECHO_T.includes(t)) return ECHO_CD;      // (🪉❤️‍🩹 3 › 4 › 5)
@@ -2535,7 +2548,7 @@ function cdVal(U,t,prev){
 const CD_SOLOKNIFE={slice:0,slash:1,arc:2};
 function cdLeft(U,t,slot){ if(U.boss) return 0; const k=cdKey(t,U); if(k) return Math.max(0,((U.cd||{})[k]||0)-slot); if(t==='heal1'||t==='heal2'||t==='fogbomb'||t==='assassinate'||SPELLS.includes(t)||t==='restore') return (U.tcd||{})[t]||0; if(arrFam(t)==='pin'||arrFam(t)==='psn'||arrFam(t)==='fog') return (U.tcd||{})[arrFam(t)]||0; return 0; }
 function cdLeftQ(U,t,types){ if(state&&state.adv&&state.adv.free&&U===state.P) return advCd(U,t);      // 🧭 (v67) free mode: seconds
-  let l=cdLeft(U,t,types.length); if(isBoomT(U,t)) l=Math.max(l,(U.boomCd||0)-types.length); if(t==='kick'&&((types.length?types[types.length-1]:U.lastAct)==='kick')) l=Math.max(l,1);      // 👊 (v66) not twice in a row (also across turns)
+  let l=cdLeft(U,t,types.length); if(isBoomT(U,t)) l=Math.max(l,(U.boomCd||0)-types.length);      // (v86 👊 a Kick's 1-action cooldown is an ordinary one now: set when it is carried out, see cdKey / cdVal)
   if(isPlainShot(t)){ const j=types.map(isPlainShot).lastIndexOf(true); if(j>=0) l=Math.max(l,shotLv(types[j])-(types.length-1-j)); } if((arrFam(t)==='pin'||arrFam(t)==='psn'||arrFam(t)==='fog')&&types.some(x=>arrFam(x)===arrFam(t))) l=Math.max(l,1); if((t==='fogbomb'||t==='assassinate'||SPELLS.includes(t))&&types.includes(t)) l=Math.max(l,1); if(t==='push'){ const j=types.lastIndexOf(t); if(j>=0) l=Math.max(l,Math.max(0,3-(types.length-j))); }
   { const k=cdKey(t,U); if(k&&MUS_QCD.includes(k)){ const j=types.map(x=>cdKey(x,U)).lastIndexOf(k); if(j>=0) l=Math.max(l,cdVal(U,types[j],types.slice(0,j))-(types.length-1-j)); } }      // 👩‍🎤 a Musician's cooldown already counts for the rest of the turn being planned
   return l; }
@@ -4878,7 +4891,7 @@ function onHexClick(cell){
   if(typeof DEV!=="undefined"&&DEV.on&&DEV.pick){ devBoardPick(cell); return; }      // 🛠 DevTool: 📍 a cell for Move / an area
   if(state.phase==='teamSetup'){ teamSetupClick(cell); return; }
   if(isFull()&&state.phase==='queue'){      // (v80) tap one of your own pawns: plan for it · tap an enemy (nothing being aimed): show its card
-    const hk=ctlKeys().find(k=>k!==state.activeSide&&!lockedOut(state[k])&&(cell===state[k].pos||cell===plannedPosOf(state[k])));
+    const hk=ctlKeys().find(k=>k!==state.activeSide&&!lockedOut(state[k])&&((!state[k].pu&&cell===state[k].pos)||cell===plannedPosOf(state[k])));
     if(hk&&!(state.pending&&computeValid().validCells.includes(cell))){ selectAlly(hk); return; }
     const fk=foeKeys().find(k=>state[k].pos===cell&&!isDead(state[k]));
     if(fk&&!state.pending){ state.focusK=fk; render(); return; }
@@ -4947,8 +4960,9 @@ function onHexClick(cell){
       if(state.pendingFirstCell===null){ state.pendingFirstCell=cell; render(); return; }
       queuePush(state.pending,state.pendingFirstCell,cell);
     } else if(state.pending==='move'&&hasBoot(cur(),'running')){      // 👟 Running Boots: a first cell, then a second one next to it (or the first one again)
-      if(!state.pendingFirstCell){ state.pendingFirstCell=cell; render(); return; }
-      const v=state.pendingFirstCell; queuePush('move',cell); if(cell!==v){ const q=cur().queue; q[q.length-1].via=v; } }
+      if(!state.pendingFirstCell&&state.mode==='team'&&canPickAt(cur(),cell)) queuePush('move',cell);      // (v86) a downed ally on the first cell: the run ends there and picks it up
+      else { if(!state.pendingFirstCell){ state.pendingFirstCell=cell; render(); return; }
+        const v=state.pendingFirstCell; queuePush('move',cell); if(cell!==v){ const q=cur().queue; q[q.length-1].via=v; } } }
     else queuePush(state.pending,cell);
     state.pending=null; state.pendingFirstCell=null; render(); return;
   }
@@ -7404,7 +7418,6 @@ function drawUnits(t){
         if(postI&&!preI&&t<H+700){ const u=clamp01((t-H)/700); for(let j=0;j<6;j++){ const a=j*Math.PI/3+u*1.4; top+=`<text class="item" x="${f2(x+(14+36*u)*Math.cos(a))}" y="${f2(y+(14+36*u)*Math.sin(a)+4)}" style="font-size:${f2(9+5*(1-u))}px;opacity:${f2(1-u)}">❄️</text>`; } }
       }
     }
-    for(const S2 of tkeys()) if(S2!==S&&puK(S2)===S&&!hiddenS[S2]) pawns+=puSVG(S2,S);      // 👥 (v86) the passenger first: the carrier is drawn over it
     if(stOp<1||slp) pawns+=`<g${stOp<1?` opacity="${f2(stOp)}"`:''}${slp?` transform="rotate(-24 ${f2(x)} ${f2(y)})" style="filter:grayscale(.55) brightness(.9)"`:''}>`;
     { const brk=(st.breaking&&info)?clamp01((t-(info.hit||0))/650):0; if(brk>0) pawns+=`<g opacity="${f2(1-brk)}" transform="translate(${f2(Math.sin(t/17)*4.5*(1-brk))} ${f2(6*brk*brk)})">`; st._brk=brk; }      // 🧭 (v68) a broken corpse trembles and fades as the blow lands
     pawns+=`<text class="unit${rage&&!info?' bpulse':''}${shake&&!info?' tremble':''}" x="${f2(x+px+tx)}" y="${f2(y+py+8.4*bs+ty)}"${(()=>{const fs=((bs!==1&&!(rage&&!info))||(rage&&info))?'font-size:'+f2(ufs)+'px;':'';const fl=tintOf(S,st)+' '+(chl?'sepia(.55) hue-rotate(160deg) saturate(2.4) brightness(1.08) ':'')+(oilT?'brightness(.62) saturate(.7) contrast(1.1) ':'')+(kd?'grayscale(1) brightness(.55)':'');const ex=fl?'filter:'+fl.trim()+';'+(kd?'opacity:.6;':''):'';return (fs||ex)?' style="'+fs+ex+'"':'';})()}>${dead?'☠️':sideEmoji(S)}</text>`;
@@ -7781,8 +7794,9 @@ function drawUnits(t){
       const B=body[S], w=clamp01((t-H+140)/460), op=w<0.35?1:1-(w-0.35)/0.65, pts=[[B.x-6,B.y-80],[B.x+8,B.y-52],[B.x-5,B.y-34],[B.x+6,B.y-16],[B.x,B.y]].map(p=>f2(p[0])+','+f2(p[1])).join(' ');
       top+=`<polyline points="${pts}" fill="none" stroke="#fff6a8" stroke-width="3.2" stroke-linejoin="round" opacity="${f2(op)}" style="filter:drop-shadow(0 0 4px #9fb4ff)" pointer-events="none"></polyline>`;
       if(w<0.5) top+=`<polygon points="${hexPoints(B.x,B.y,33)}" fill="rgba(200,210,255,${f2(.45*(1-w/0.5))})" pointer-events="none"></polygon>`; } }
-  { curBs=1; for(const S of tkeys()){ const cK=puK(S); if(!cK||!body[cK]) continue; const cb=body[cK], {bx,by}=puXY(S,cK); body[S]={x:cb.x,y:cb.y};      // (drawn behind its carrier, in the carrier's turn above)
-    stats+=stat('👥',bx+9,by-10); if(info&&info.healed&&info.healed[S]&&t>=H){ const u=clamp01((t-H)/900); floats+=`<text class="dmg" x="${f2(bx)}" y="${f2(by-14-u*14)}" fill="#8dff9d" opacity="${f2(1-u)}">+${fmtUI(info.healed[S])}♥️</text>`; } } }
+  { curBs=1; for(const S of tkeys()){ const cK=puK(S); if(!cK||!body[cK]) continue; const cb=body[cK], {bx,by}=puXY(S,cK); body[S]={x:cb.x,y:cb.y};
+    if(!hiddenS[S]&&(info||carryAt(state[cK],(state[cK].queue||[]).length))) pawns+=puSVG(S,cK);      // (v86) on top of its carrier — not while planning once the carrier's plan already sets it down (its ghost shows where)
+    if(info&&info.healed&&info.healed[S]&&t>=H){ const u=clamp01((t-H)/900); floats+=`<text class="dmg" x="${f2(bx)}" y="${f2(by-14-u*14)}" fill="#8dff9d" opacity="${f2(1-u)}">+${fmtUI(info.healed[S])}♥️</text>`; } } }
 
   {      // 🪃 (v84) Boomerangs: on the floor · in the air (spinning, its next cells marked) · flying during the action
     const bmIc=(x,y,rot,op,fs)=>`<text x="${f2(x)}" y="${f2(y+7)}" text-anchor="middle" style="font-size:${fs||20}px${op!=null?';opacity:'+f2(op):''}" transform="rotate(${f2(rot)} ${f2(x)} ${f2(y)})" pointer-events="none">🪃</text>`;
@@ -8773,10 +8787,10 @@ function renderHUD(){
     const capTxt=c=>`<span class="captxt" title="💗 original max HP — Cheap Heals (Heal at full HP) scar it by half of what they restore">💗${fmtUI(c)}</span>`;
     let c2=cap;      // (the heal preview below also follows the 💗 a Cheap Heal would scar)
     if(!ov&&!state.anim&&state.phase==='queue'&&state.mode==='team'){
-      let h=u.hp,m=u.maxHp,any=false; const X=state[S], M=mateOf(X);
+      let h=u.hp,m=u.maxHp,any=false; const X=state[S], M=(X.pu&&state[X.pu])||mateOf(X);
       const ap=lvl=>{ const rr=healCalc(h,m,c2,lvl,false); if(rr){ h=rr.hp; m=rr.mh; c2=rr.cap; any=true; } };
       (X.queue||[]).forEach((a,i)=>{ if((a.type==='heal1'||a.type==='heal2')&&!carryAt(X,i)) ap(a.type==='heal1'?1:2); });
-      if(M) (M.queue||[]).forEach((a,i)=>{ if((a.type==='heal1'||a.type==='heal2')&&carryAt(M,i)) ap(a.type==='heal1'?1:2); });      // a carrier's heal goes to the pawn on its back
+      if(M) (M.queue||[]).forEach((a,i)=>{ if((a.type==='heal1'||a.type==='heal2')&&carryAt(M,i)&&h<m){ h=Math.min(m,r3(h+PU_HEAL[a.type])); any=true; } });      // a carrier's heal goes to the pawn on its back
       if(any) hpTxt+=` → <span style="color:#3ddc6a;font-weight:700">${fmtUI(h)}</span>/<span style="color:#ff5a4d;font-weight:700">${fmtUI(m)}</span>`;
     } else if(!ov&&!state.anim&&state.phase==='queue'&&S===state.activeSide){
       let h=u.hp,m=u.maxHp,any=false;
@@ -8796,21 +8810,33 @@ function renderHUD(){
   document.getElementById('hudFoe').innerHTML=`<b>${emojiHTML('E')} ${sideName('E')}${you('E')||youTag('E')}</b>${gearIcons(state.E)}${(state.mode==='ai'&&!state.E.boss&&!ov&&!state.anim&&(state.phase==='queue'||state.over))?`<button class="ctrl gray" style="padding:1px 6px;font-size:11px;margin-left:4px" title="Choose the Bot's gear" onclick="openCustom('bot')">⚙️ Gear</button>`:''}<br>`+bar('E',hideSpF('E',(online&&state.mySide!=='E')||(state.mode==='ai'||state.mode==='team')));
   { const hb=document.getElementById('hudBox'); if(hb) hb.className='hud'+(state.F?' team4':'');
     const inT=state.mode==='team'&&!state.sim&&state.phase!=='teamSetup';
-    for(const [id,k] of [['hudYou','P'],['hudF','F'],['hudFoe','E'],['hudE2','E2']]){ const d=document.getElementById(id); if(!d) continue; if(id==='hudYou') d.className=''; if(inT&&(isFull()?false:(state.activeSide===k&&state[k]&&(k==='P'||state.F)))) d.classList.add('selinfo'); else d.classList.remove('selinfo'); } }
+    for(const [id,k] of [['hudYou','P'],['hudF','F'],['hudFoe','E'],['hudE2','E2']]){ const d=document.getElementById(id); if(!d) continue; if(id==='hudYou'||id==='hudFoe') d.className=''; if(inT&&(isFull()?false:(state.activeSide===k&&state[k]&&(k==='P'||state.F)))) d.classList.add('selinfo'); else d.classList.remove('selinfo'); } }
   { const hf=document.getElementById('hudF'); if(hf) hf.innerHTML=state.F?`<b>${sideEmoji('F')} ${sideName('F')}${youTag('F')}</b>${gearIcons(state.F)}<br>`+bar('F',hideSpF('F',false)):''; }
   { const h2=document.getElementById('hudE2'); if(h2) h2.innerHTML=state.E2?`<b><span style="filter:${emojiFilter('E2')}">${sideEmoji('E2')}</span> ${sideName('E2')}${youTag('E2')}</b>${gearIcons(state.E2)}<br>`+bar('E2',hideSpF('E2',true)):''; }
   if(state.adv&&advE2Key()!=='E2'){ const fk=advE2Key(), d=document.getElementById('hudE2'); if(d) d.innerHTML=`<b>${emojiHTML(fk)} ${sideName(fk)}</b>${gearIcons(state[fk])}<br>`+bar(fk,hideSpF(fk,true)); }      // 🧭 (v81) a third (fourth…) enemy you tapped: its card in the second slot
   if(isFull()){      // 👥 (v80) two cards only: the pawn you plan for · the enemy you tapped (bars over every head on the board)
     const own=ownKeys(), a=own.includes(state.activeSide)?state.activeSide:(own[0]||'P'), fk=(state.focusK&&state[state.focusK]&&!isDead(state[state.focusK]))?state.focusK:(foeKeys().find(k=>!isDead(state[k]))||foeKeys()[0]||'E');
     const hb=document.getElementById('hudBox'); if(hb) hb.className='hud';
-    { const hy=document.getElementById('hudYou'), inT=state.mode==='team'&&!state.sim&&state.phase!=='teamSetup', ctl=ctlKeys();      // (v86) every pawn of your team has its card (downed ones too); the one you plan for glows cyan, a tap on another of yours switches to it
-      hy.className='hudTeam'; hy.innerHTML=own.filter(k=>state[k]&&!state[k].ghost).map(k=>{ const U=state[k], pick=ctl.includes(k)&&k!==a&&!lockedOut(U)&&state.phase==='queue'&&!state.anim;
-        return `<div class="hudCard${inT&&k===a?' selinfo':''}${pick?' pick':''}"${pick?` onclick="selectAlly('${k}')" title="Plan for ${sideName(k)}"`:''}><b>${emojiHTML(k)} ${sideName(k)}${youTag(k)}</b>${gearIcons(U)}<br>`+bar(k,false)+'</div>'; }).join(''); }
-    if(state[fk]) document.getElementById('hudFoe').innerHTML=`<b>${emojiHTML(fk)} ${sideName(fk)}</b>${gearIcons(state[fk])} <span class="sub">· tap an enemy</span><br>`+bar(fk,hideSpF(fk,true));
+    { const hy=document.getElementById('hudYou'), hf=document.getElementById('hudFoe'), inT=state.mode==='team'&&!state.sim&&state.phase!=='teamSetup', ctl=ctlKeys(), big=inT?a:null;      // (v86) a card for every pawn: the one you plan for full size (cyan), every other one half size — hover it to read it full size
+      const card=(k,foe)=>{ const U=state[k], pick=!foe&&ctl.includes(k)&&k!==a&&!lockedOut(U)&&state.phase==='queue'&&!state.anim, mini=k!==big, dd=isDead(U);
+        const click=pick?` onclick="selectAlly('${k}')" title="Plan for ${sideName(k)}"`:(foe&&!dd?` onclick="state.focusK='${k}';render()" title="Show ${sideName(k)} on the board"`:'');
+        return `<div class="hudCard${k===big?' selinfo':''}${mini?' mini':''}${pick||(foe&&!dd)?' pick':''}${foe&&k===fk?' focus':''}${dd?' dead':''}" data-k="${k}"${click}><b>${emojiHTML(k)} ${sideName(k)}${foe?'':youTag(k)}</b>${gearIcons(U)}<br>`+bar(k,foe?hideSpF(k,true):false)+'</div>'; };
+      const vis=ks=>ks.filter(k=>state[k]&&!state[k].ghost);
+      hy.className='hudTeam'; hy.innerHTML=vis(own).map(k=>card(k,false)).join('');
+      hf.className='hudTeam foes'; hf.innerHTML=vis(foeKeys()).map(k=>card(k,true)).join('');
+      hudPopSync(); }
     for(const id of ['hudF','hudE2']){ const d=document.getElementById(id); if(d) d.innerHTML=''; } }
   document.getElementById('log').innerHTML=(ov?ov.log:((state.over&&state.logFull&&!state.anim)?state.logFull:state.log)).map(l=>`<div>${l}</div>`).join('');
 }
 
+// 👥 (v86) a half-size team card read full size while the mouse is over it (a floating copy: the row never jumps; clicks go through to the small card)
+let HUD_POP=null;
+function hudPopSync(){ const p=document.getElementById('hudPop'); if(!p) return; const c=HUD_POP&&document.querySelector(`#hudBox .hudCard.mini[data-k="${HUD_POP}"]`);
+  if(!c){ p.style.display='none'; return; }
+  const r=c.getBoundingClientRect(); p.innerHTML=c.innerHTML; p.className='hudPop'+(c.classList.contains('dead')?' dead':''); p.style.display='';
+  const w=p.offsetWidth; p.style.left=Math.max(4,Math.min(window.innerWidth-w-4,r.left))+'px'; p.style.top=(r.top-4)+'px'; }
+document.addEventListener('mouseover',e=>{ const c=e.target&&e.target.closest&&e.target.closest('#hudBox .hudCard.mini'), k=c?c.dataset.k:null; if(k!==HUD_POP){ HUD_POP=k; hudPopSync(); } });
+window.addEventListener('scroll',()=>{ if(HUD_POP) hudPopSync(); },true);
 function render(){
   for(const k of tkeys()){ const U=state[k]; if(U&&canSwapG(rawGear(U))){ if(state.phase==='queue'||state.phase==='waiting') planGear(U); else delete U.planAlt; } }      // 🔄 while planning, pawns are drawn & priced with the weapon their queue will have in hand
   ensureMap(state);
@@ -9179,18 +9205,18 @@ function mateOf(U){ if(!state||state.mode!=='team'||!U) return null; const k=key
   const pp=plannedPosOf(U); return ms.slice().sort((a,b)=>((DIST[pp]||{})[a.pos]??99)-((DIST[pp]||{})[b.pos]??99))[0]; }
 function matesOf(U){ const k=state&&keyOf(U); if(!k) return []; return sideKeys(teamA(k)).filter(x=>x!==k).map(x=>state[x]); }      // (v80) every other pawn of its team
 function lockedOut(U){ return !!U.kd&&!(U.queue||[]).some(e=>e.type==='dropped'&&e.active); }
-// 🌀 (v86) Knocked down: −0.125 max HP every action on the ground; after 3 calm actions (no blow, not moved) +0.125 HP per action too · 👥 Picked Up: +0.25 HP per action, no max HP lost
-const KD_DRAIN=0.125, KD_CALM=3, PU_MEND=0.25;
+// 🌀 (v86) Knocked down: −0.25 max HP every action on the ground; after 3 calm actions (no blow, not moved) +0.125 HP per action too · 👥 Picked Up: +0.5 HP per action, no max HP lost
+const KD_DRAIN=0.25, KD_MEND=0.125, KD_CALM=3, PU_MEND=0.5, PU_HEAL={heal1:1,heal2:2};      // (a carrier's Heal ½ / Heal gives the pawn on its back +1 / +2 HP, no max HP cost)
 function kdTimes(U){      // the actions left if nothing disturbs it: {wait, mend} (white: until the mending starts · green: until it is above 0 HP) or {die}
   if(!U||isDead(U)) return null;
   const left=(hp,step)=>hp>0?0:Math.floor(-hp/step+1e-9)+1;
   if(U.pu) return {wait:0,mend:left(U.hp,PU_MEND)};
   if(!U.kd) return null;
-  const wait=Math.max(0,KD_CALM-(U.kdCalm||0)), mend=left(U.hp,KD_DRAIN), die=Math.max(1,Math.ceil(U.maxHp/KD_DRAIN-1e-9));
+  const wait=Math.max(0,KD_CALM-(U.kdCalm||0)), mend=left(U.hp,KD_MEND), die=Math.max(1,Math.ceil(U.maxHp/KD_DRAIN-1e-9));
   return die<=wait+mend?{die}:{wait,mend};
 }
 function kdTimerHTML(U){ const T=kdTimes(U); if(!T) return '';
-  if(T.die) return ` <span class="kdt die" title="Dies in ${T.die} action${T.die>1?'s':''} unless an ally picks it up">☠️${T.die}</span>`;
+  if(T.die) return ` <span class="kdt die" style="animation-delay:-${(Date.now()%900)/1000}s" title="Dies in ${T.die} action${T.die>1?'s':''} unless an ally picks it up">☠️${T.die}</span>`;
   return (T.wait?` <span class="kdt" style="color:#fff" title="Actions until it starts to mend">⏳${T.wait}</span>`:'')+(T.mend?` <span class="kdt" style="color:#4fd98a" title="Actions of mending until it is above 0 HP">💚${T.mend}</span>`:` <span class="kdt" style="color:#4fd98a" title="Ready to fight again once set down">✔</span>`); }
 function carryAt(U,n){ if(!state||state.mode!=='team'||!U) return false; let c=!!U.carry; const q=U.queue||[]; for(let i=0;i<Math.min(n,q.length);i++){ if(q[i].type==='drop') c=false; else if(q[i].pickup) c=true; } return c; }
 function canPickAt(U,cell){ if(isFull()) return matesOf(U).some(M=>canPickM(U,M,cell)); return canPickM(U,mateOf(U),cell); }      // (v80 any downed ally)
@@ -9453,7 +9479,7 @@ function mergeUnit(pre,list){
 }
 const TEAM_MAPS=['lightHit','lnoteHit','lnoteGot','loseNew','disHit','deafNew','mesmNew','ipGain','bersZero','burnNew','oiledNew','wetNew','burnDmg','boomHit','warmNew','iceApHit','chillNew','frzNew','frzBroke','spikeHit','rimeStag','psnTick','sleepSp','pinFree','dmg','stagger','shieldHit','healed','restHit','hpDmg','armorHit','napMax','napHit','napReset','shieldSp','dblSp','moveSp','juggSp','hookSp','counterRefund','apRegen','splitNew','hookedNew','axeWait','dblAxeClash','bleedDmg','bleedNew','assnNew','revealed','enrSp','regenHp'];
 const TEAM_SUM=['boomHit','dmg','hpDmg','armorHit','shieldSp','restHit','iceApHit','spikeHit'];
-const snapU=u=>({scar:u.scar||0,regen:u.regen||0,mregen:u.mregen||0,cons:(u.cons||[]).map(c=>({q:c.q.slice(),ttl:c.ttl})),lose:u.lose||0,mp:u.mp||0,ip:u.ip||0,iap:u.iap||0,rap:u.rap||0,ice:u.ice?{lost:u.ice.lost.slice()}:null,chill:u.chill||0,oiled:u.oiled||0,wet:u.wet||0,burn:u.burn||0,warm:u.warm||0,lit:u.lit||0,spear:!!u.spear,frz:u.frz||0,prep:u.prep||null,pinned:u.pinned||0,poison:u.poison||0,sleepy:u.sleepy||0,drew:!!u.drew,ld:ldOf(u),enr:u.enr||0,assn:u.assn||0,bleed:u.bleed||0,stealth:u.stealth||0,fogged:u.fogged||0,split:u.split||0,hooked:u.hooked||0,raise:u.raise||0,rch:u.rch||0,cta:u.cta||0,arms:u.arms||0,armsCh:u.armsCh||0,echo:u.echo||0,harm:u.harm||0,hp:u.hp,sp:u.sp,maxHp:u.maxHp,heals:u.heals,lb:u.lb,ap:u.ap||0,maxAp:u.maxAp||0,ap0:u.ap0||0,bap0:u.bap0||0,bmax:u.bmax||0,tier:u.tier,gearArmor:gearOf(u).armor,kd:!!u.kd,pu:u.pu||null,carry:u.carry||null,deadPre:isDead(u)});
+const snapU=u=>({scar:u.scar||0,regen:u.regen||0,mregen:u.mregen||0,cons:(u.cons||[]).map(c=>({q:c.q.slice(),ttl:c.ttl})),lose:u.lose||0,mp:u.mp||0,ip:u.ip||0,iap:u.iap||0,rap:u.rap||0,ice:u.ice?{lost:u.ice.lost.slice()}:null,chill:u.chill||0,oiled:u.oiled||0,wet:u.wet||0,burn:u.burn||0,warm:u.warm||0,lit:u.lit||0,spear:!!u.spear,frz:u.frz||0,prep:u.prep||null,pinned:u.pinned||0,poison:u.poison||0,sleepy:u.sleepy||0,drew:!!u.drew,ld:ldOf(u),enr:u.enr||0,assn:u.assn||0,bleed:u.bleed||0,stealth:u.stealth||0,fogged:u.fogged||0,split:u.split||0,hooked:u.hooked||0,raise:u.raise||0,rch:u.rch||0,cta:u.cta||0,arms:u.arms||0,armsCh:u.armsCh||0,echo:u.echo||0,harm:u.harm||0,hp:u.hp,sp:u.sp,maxHp:u.maxHp,heals:u.heals,lb:u.lb,ap:u.ap||0,maxAp:u.maxAp||0,ap0:u.ap0||0,bap0:u.bap0||0,bmax:u.bmax||0,tier:u.tier,gearArmor:gearOf(u).armor,kd:!!u.kd,pu:u.pu||null,carry:u.carry||null,kdCalm:u.kdCalm||0,canNeg:!!u.canNeg,dead:!!u.dead,deadPre:isDead(u)});      // (v86 kdCalm / canNeg / dead: the knock-down timers stay put while an action plays)
 function teamRound(r){
   const keys=tkeys(), U={}; keys.forEach(k=>{ U[k]=state[k]; if(U[k]) delete U[k].planAlt; });      // 🔄 (resolving: every pawn fights with the weapon its queue entry names)
   const allyK=sideKeys(true), foeK=sideKeys(false);      // (v80 any number a side)
@@ -9586,8 +9612,8 @@ function teamRound(r){
     if(ATTACKS.includes(a0.type)) V.sp=Math.max(0,V.sp-1);
     if((a0.type==='heal1'||a0.type==='heal2')&&V.carry){ const lvl=a0.type==='heal1'?1:2; V.tcd=V.tcd||{}; V.tcd[a0.type]=lvl===1?4:7; const M=U[V.carry];
       if(r3(preU[k].hp-V.hp)>0) cmsg.push(`${V.name}'s heal is interrupted.`);
-      else if(M&&M.hp<M.maxHp){ const b0=M.hp; M.hp=Math.min(M.maxHp,r3(M.hp+(lvl===1?0.5:1))); { xfer[V.carry]=Math.max(0.01,r3(M.hp-b0)); cmsg.push(`💞 ${V.name} heals ${M.name} — now ${fmtNum(M.hp)}/${fmtNum(M.maxHp)}.`); } } } }      // (v86) healing the pawn on your back costs nobody max HP
-  for(const k of keys){ const V=U[k]; if(V.pu&&V.hp<=0&&V.maxHp>0) V.hp=Math.min(V.maxHp,r3(V.hp+PU_MEND)); }      // a passenger mends 0.25 HP per action until it is above 0
+      else if(M&&M.hp<M.maxHp){ const b0=M.hp; M.hp=Math.min(M.maxHp,r3(M.hp+PU_HEAL[a0.type])); { xfer[V.carry]=Math.max(0.01,r3(M.hp-b0)); cmsg.push(`💞 ${V.name} heals ${M.name} — now ${fmtNum(M.hp)}/${fmtNum(M.maxHp)}.`); } } } }      // (v86) healing the pawn on your back costs nobody max HP
+  for(const k of keys){ const V=U[k]; if(V.pu&&V.hp<=0&&V.maxHp>0) V.hp=Math.min(V.maxHp,r3(V.hp+PU_MEND)); }      // a passenger mends 0.5 HP per action until it is above 0
   const placeMate=(k,want,why)=>{ const V=U[k], m=V.carry, M=U[m]; if(!M){ V.carry=null; return; }
     const occ=new Set(keys.filter(x=>x!==m&&!U[x].pu).map(x=>U[x].pos));
     const cell=(want&&!occ.has(want)&&RING[V.pos].includes(want))?want:(RING[V.pos].find(c=>!occ.has(c))||V.pos);
@@ -9720,9 +9746,9 @@ function teamRound(r){
   for(const k of canK){
     const b=U[k]; if(!kdPre[k]||!b.kd||isDead(b)||b.pu||preU[k].pu||dropped.has(k)) continue;
     const touched=recs.some(x=>{ if(!x.la&&x.a===k) return (x.info.side.E.pat||[]).includes(pre[k]); if(!x.le&&x.e===k) return (x.info.side.P.pat||[]).includes(pre[k]); return false; })||b.pos!==pre[k];
-    b.maxHp=r3(b.maxHp-KD_DRAIN);      // (v86) every action on the ground costs 0.125 max HP — before the mending starts too
+    b.maxHp=r3(b.maxHp-KD_DRAIN);      // (v86) every action on the ground costs 0.25 max HP — before the mending starts too
     if(touched) b.kdCalm=0;
-    else { if(b.kdCalm>=KD_CALM) b.hp=r3(b.hp+KD_DRAIN); b.kdCalm=Math.min(9,b.kdCalm+1); }      // (after 3 calm actions: +0.125 HP per action)
+    else { if(b.kdCalm>=KD_CALM) b.hp=r3(b.hp+KD_MEND); b.kdCalm=Math.min(9,b.kdCalm+1); }      // (after 3 calm actions: +0.125 HP per action)
     if(b.maxHp<=0){ b.maxHp=0; b.hp=0; b.kd=false; b.dead=true; say(`☠️ ${b.name} fades away (max HP gone).`); }
     else if(b.hp>0){ b.hp=Math.min(b.hp,b.maxHp); b.kd=false; b.skip=false; b.queue=[]; say(`💪 ${b.name} is back on its feet (${fmtNum(b.hp)}/${fmtNum(b.maxHp)}).`); }
   }
@@ -9746,7 +9772,7 @@ async function runTeamResolution(){
   for(let r=0;r<3;r++){
     if(rp&&replayAbort) return;
     if(simTok!==null){ while(SIM.paused&&SIM.run===simTok) await sleep(80); if(SIM.run!==simTok) return; }
-    const advPrev=state.adv?state.P.pos:null, info=teamRound(r); if(state.adv){ advMarkBreaks(info); if(state.winner==='ally'){ state.winner=null; state.over=false; state.phase='resolving'; } }      // (v72) Adventure never shows a victory screen (an enemy may still be waiting to step in)
+    const advPrev=state.adv?state.P.pos:null, info=teamRound(r); if(!state.adv&&isFull()) teamMarkBreaks(info); if(state.adv){ advMarkBreaks(info); if(state.winner==='ally'){ state.winner=null; state.over=false; state.phase='resolving'; } }      // (v72) Adventure never shows a victory screen (an enemy may still be waiting to step in)
     if(state.adv){ const hos=sideKeys(false).filter(k=>state[k]&&state[k].hostile); if(hos.length&&hos.every(k=>isDead(state[k]))&&!(state.adv.reserve[state.adv.room]||[]).length&&['P','F'].some(k=>state[k]&&!isDead(state[k]))){      // (v74: only while your side still stands — falling with the last enemy is a game over, not a frozen free mode)
       state.adv.endCombat=true; state.winner=null; state.over=false; state.phase='resolving'; } }      // 🧭 (v67) the last enemy down: no "victory", the room goes back to free mode
     const idle=a=>a==='wait'||a==='rest'||a==='nap'||a==='none';
@@ -9757,6 +9783,7 @@ async function runTeamResolution(){
     render();
     await animateRound(info);
     state.anim=null; state.fx=null; state.hudOverride=null;
+    for(const k of tkeys()){ const U=state[k]; if(U&&U.breaking){ U.breaking=false; U.ghost=true; } }      // 💀 (v86) a broken corpse is gone from the board
     render();
     if(state.adv&&!state.over){ await advPostRound(info,advPrev); if(state.adv.endCombat){ state.adv.endCombat=false; advFightDone(); return; } }
     if(state.over){ playEnd(); return; }
@@ -10742,6 +10769,10 @@ async function advPostRound(info,prev){ const A=state.adv, P=state.P; if(!A) ret
       A.fx.push({k:'collect',cell:l.cell,ic:inf.ic||'💼',t0:performance.now(),d:600}); advFxKick(); } }
   advPlates(); advSmithAlly(); advAllyHome();      // (v77)
   if(prev!==P.pos) await advEnter(P.pos,prev); }
+function blowCells(info){ const ac=new Set(info&&info.attackCells||[]); for(const key of ['shots','fbolts','boom','items','rdash']) for(const z of [].concat((info&&info[key])||[])){ if(!z||typeof z!=='object'||z.kind==='none') continue; for(const c of [].concat(z.cells||[],z.at||[],z.cell||[])) if(typeof c==='string') ac.add(c); } return ac; }
+function teamMarkBreaks(info){ const ac=blowCells(info); let any=false;      // 💀 (v86) Full Team Mode: a ☠️ that was already lying there breaks under any blow, like in Adventure (no coin)
+  for(const k of tkeys()){ const U=state[k], pre=info&&info.pre&&info.pre[k]; if(!U||U.ghost||U.breaking||!isDead(U)||!(pre&&pre.deadPre)||!ac.has(U.pos)) continue; U.breaking=true; any=true; }
+  if(any) setTimeout(()=>playSfx('breakHeart',false),Math.max(0,(info.hit||300)/(info.spd||1))); }
 function advMarkBreaks(info){ const A=state.adv, ac=new Set(info&&info.attackCells||[]); for(const key of ['shots','fbolts','boom','items','rdash']) for(const z of [].concat((info&&info[key])||[])){ if(!z||typeof z!=='object'||z.kind==='none') continue; for(const c of [].concat(z.cells||[],z.at||[],z.cell||[])) if(typeof c==='string') ac.add(c); }      // (v73) arrows, bolts, blasts, bombs and rushes break corpses too
   advClowHits(ac);      // (v73)
   for(const c of A.corpses) if(c.room===A.room&&ac.has(c.cell)&&!c.breaking){ c.breaking=true; c.brkH=info.hit||300; setTimeout(()=>playSfx('breakHeart',false),Math.max(0,(info.hit||300)/(info.spd||1))); } }      // (v69) a corpse under a blow breaks while the blow lands
